@@ -21,18 +21,17 @@
 // define variables && constants
 //----------------------------------------------------------------------------    
 #include <Arduino.h>
+#include <CircuitOS.h>
 #include <TFT_eSPI.h>
 #include "src/Buttons/Buttons.h"
 #include "src/Star.h"
 #include <ArduinoJson.h>
-// #include <spiffs/spiffs.h>
 #include <spiffs_api.h>
 #include <gpio.h>
 #include <avr/pgmspace.h>
 StaticJsonBuffer<8000> jb;
 
-TFT_eSPI tft = TFT_eSPI(); // Invoke library, pins defined in User_Setup.h
-TFT_eSprite display = TFT_eSprite(&tft);
+
 Buttons buttons;
 uint32_t lastFrameCount = millis();
 uint32_t frameSpeed = 40;
@@ -48,6 +47,8 @@ uint32_t frameSpeed = 40;
 #define BUZZ_PIN 12
 #define BL_PIN 16
 
+Display display(128, 128, BL_PIN, 0);
+Sprite *baseSprite = display.getBaseSprite();
 uint32_t pixelsTimer=0;
 bool pixelsState=0;
 String gamestatus;
@@ -115,10 +116,14 @@ void starsSetup()
 	for(int i = 0; i < STAR_COUNT; i++)
 	{
 		// Randomize its position && speed.
-		stars[i].randomize(0, display.width(), 0, display.height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
+		stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
 	}
 } 
-
+void drawBitmap(int16_t x, int16_t y, const byte *bitmap, uint16_t color, uint8_t scale) {
+	uint16_t w = *(bitmap++);
+	uint16_t h = *(bitmap++);
+	baseSprite->drawMonochromeIcon(bitmap, x, y, w, h, scale, color);
+}
 //ported images
 //----------------------------------------------------------------------------
 static const unsigned short titleLogo[0x438] ={
@@ -237,7 +242,7 @@ bool update()
 	if (millis() - lastFrameCount >= frameSpeed)
 	{
 		lastFrameCount = millis();
-		display.pushSprite(0, 0);
+		display.commit();
 		return true;
 	}
 	else
@@ -317,14 +322,14 @@ void newlevel() {
 //----------------------------------------------------------------------------
 void showscore() {
 	if (infoshow == 1 && saucers == -1) {
-		if (lives > 1) { display.drawBitmap(0, 0, playership[0], TFT_WHITE, 2); }
-		if (lives > 2) { display.drawBitmap(18, 0, playership[0], TFT_WHITE, 2); }
-		display.cursor_x= 84 - 4 * (score > 9) - 4 * (score > 99) - 4 * (score > 999);
-		display.cursor_y = 10;
-		display.print(score);
-		display.cursor_x = 112;
-		display.cursor_y = 10;
-		display.print(gamelevel + 1);
+		if (lives > 1) { drawBitmap(0, 0, playership[0], TFT_WHITE, 2); }
+		if (lives > 2) { drawBitmap(18, 0, playership[0], TFT_WHITE, 2); }
+		baseSprite->cursor_x= 84 - 4 * (score > 9) - 4 * (score > 99) - 4 * (score > 999);
+		baseSprite->cursor_y = 10;
+		baseSprite->print(score);
+		baseSprite->cursor_x = 112;
+		baseSprite->cursor_y = 10;
+		baseSprite->print(gamelevel + 1);
 	}
 }
 //----------------------------------------------------------------------------
@@ -376,10 +381,10 @@ void checkbuttons() {
 //----------------------------------------------------------------------------
 void drawplayership() {
 	if (deadcounter == -1) {
-		display.drawBitmap(shipx, 110, playership[0], TFT_WHITE, 2);
+		drawBitmap(shipx, 110, playership[0], TFT_WHITE, 2);
 	}
 	else {
-		display.drawBitmap(shipx, 110, playership[1 + invadershotframe], TFT_YELLOW, 2);
+		drawBitmap(shipx, 110, playership[1 + invadershotframe], TFT_YELLOW, 2);
 		handledeath();
 	}
 }
@@ -387,8 +392,8 @@ void drawplayership() {
 void drawplayershot() {
 	if (shotx != -1) {
 		shoty = shoty - 2;
-		display.drawLine(shotx, shoty, shotx, shoty + 6, TFT_YELLOW);
-		display.drawLine(shotx+1, shoty, shotx+1, shoty + 6, TFT_YELLOW);
+		baseSprite->drawLine(shotx, shoty, shotx, shoty + 6, TFT_YELLOW);
+		baseSprite->drawLine(shotx+1, shoty, shotx+1, shoty + 6, TFT_YELLOW);
 		if (shoty < 0) {
 			shotx = -1;
 			shoty = -1;
@@ -490,10 +495,10 @@ void drawinvaders() {
 	infoshow = 1;
 	for (int i = 0; i < 30; i++) {
 		if (invaders[i] != -1) {
-			if (invaders[i] == 0) display.drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_ORANGE, 2);
-			if (invaders[i] == 2) display.drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_PINK, 2);
-			if (invaders[i] == 4) display.drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_BLUE, 2);
-			if (invaders[i] == 6) display.drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_YELLOW, 2);
+			if (invaders[i] == 0) drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_ORANGE, 2);
+			if (invaders[i] == 2) drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_PINK, 2);
+			if (invaders[i] == 4) drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_BLUE, 2);
+			if (invaders[i] == 6) drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_YELLOW, 2);
 			
 			if (invadery[i] < 5) {
 				infoshow = 0;
@@ -534,7 +539,7 @@ void invadershot() {
 	for (int i = 0; i < 4; i++) {
 		if (invadershotx[i] != -1) {
 			invadershoty[i] = invadershoty[i] + 1;
-			display.drawBitmap(invadershotx[i], invadershoty[i], bomb[invadershotframe], TFT_RED, 2);
+			drawBitmap(invadershotx[i], invadershoty[i], bomb[invadershotframe], TFT_RED, 2);
 
 			// check collission: invadershot & bunker
 			for (int u = 0; u < 4; u++) {
@@ -602,7 +607,7 @@ void drawbunkers() {
 		}
 
 		if (bunkers[i] != -1) {
-			display.drawBitmap(12 + i * 30, 90, bunker[bunkers[i]], TFT_GREEN, 2);
+			drawBitmap(12 + i * 30, 90, bunker[bunkers[i]], TFT_GREEN, 2);
 		}
 		yield();
 	}
@@ -664,7 +669,7 @@ void movesaucer() {
 //----------------------------------------------------------------------------
 void drawsaucer() {
 	if (saucers != -1) {
-		display.drawBitmap(saucerx, 0, saucer[saucers], TFT_RED, 2);
+		drawBitmap(saucerx, 0, saucer[saucers], TFT_RED, 2);
 		if (saucers == 1) {
 			saucerwait--;
 			if (saucerwait <= 0) {
@@ -685,33 +690,33 @@ void eraseData()
 	bool blinkState = 1;
 	while(1)
 	{
-		display.fillScreen(TFT_BLACK);
-		display.setTextFont(2);
+		baseSprite->clear(TFT_BLACK);
+		baseSprite->setTextFont(2);
 
 		if (millis() - elapsedMillis >= multi_tap_threshold) {
 			elapsedMillis = millis();
 			blinkState = !blinkState;
 		}
 
-		display.setTextColor(TFT_WHITE);
-		display.setCursor(4, 5);
-		display.printCenter("ARE YOU SURE?");
-		display.setCursor(4, 25);
-		display.printCenter("This cannot");
-		display.setCursor(4, 41);
-		display.printCenter("be reverted!");
+		baseSprite->setTextColor(TFT_WHITE);
+		baseSprite->setCursor(4, 5);
+		baseSprite->printCenter("ARE YOU SURE?");
+		baseSprite->setCursor(4, 25);
+		baseSprite->printCenter("This cannot");
+		baseSprite->setCursor(4, 41);
+		baseSprite->printCenter("be reverted!");
 
 		if (blinkState){
-			display.drawRect((display.width() - 60)/2, 102, 30*2, 9*2, TFT_RED);
-			display.setTextColor(TFT_RED);
-			display.setCursor(28*2, 103);
-			display.printCenter("DELETE");
+			baseSprite->drawRect((baseSprite->width() - 60)/2, 102, 30*2, 9*2, TFT_RED);
+			baseSprite->setTextColor(TFT_RED);
+			baseSprite->setCursor(28*2, 103);
+			baseSprite->printCenter("DELETE");
 		}
 		else {
-			display.fillRect((display.width() - 60)/2, 102, 30*2, 9*2, TFT_RED);
-			display.setTextColor(TFT_WHITE);
-			display.setCursor(28*2, 103);
-			display.printCenter("DELETE");
+			baseSprite->fillRect((baseSprite->width() - 60)/2, 102, 30*2, 9*2, TFT_RED);
+			baseSprite->setTextColor(TFT_WHITE);
+			baseSprite->setCursor(28*2, 103);
+			baseSprite->printCenter("DELETE");
 		}
 		if (buttons.released(BTN_B)) //BUTTON BACK
 		{
@@ -767,23 +772,23 @@ void dataDisplay()
 }
 	while(1)
 	{
-		display.fillScreen(TFT_BLACK);
-		display.setCursor(32, -2);
-		display.setTextSize(1);
-		display.setTextFont(2);
-		display.setTextColor(TFT_RED);
-		display.printCenter("HIGHSCORES");
-		display.setCursor(3, 110);
+		baseSprite->clear(TFT_BLACK);
+		baseSprite->setCursor(32, -2);
+		baseSprite->setTextSize(1);
+		baseSprite->setTextFont(2);
+		baseSprite->setTextColor(TFT_RED);
+		baseSprite->printCenter("HIGHSCORES");
+		baseSprite->setCursor(3, 110);
 		for (int i = 1; i < 6;i++)
 		{
-			display.setCursor(6, i * 20);
+			baseSprite->setCursor(6, i * 20);
 			if(i <= hiscoresSize)
-				display.printf("%d.   %.3s    %04d", i, nameArray[i], scoreArray[i]);
+				baseSprite->printf("%d.   %.3s    %04d", i, nameArray[i], scoreArray[i]);
 			else
-				display.printf("%d.    ---   ----", i);
+				baseSprite->printf("%d.    ---   ----", i);
 		}
-		display.setCursor(2, 115);
-		display.print("Erase");
+		baseSprite->setCursor(2, 115);
+		baseSprite->print("Erase");
 		if (buttons.released(BTN_B) || buttons.released(BTN_A))
 		{
 			buttons.update();
@@ -810,47 +815,47 @@ void showtitle() {
 	bool blinkState = 0;
 	while(!buttons.released(BTN_A))
 	{
-		display.fillScreen(TFT_BLACK);
+		baseSprite->clear(TFT_BLACK);
 		for(int i = 0; i < STAR_COUNT; i++)
 		{
 			// Remove the star from the screen by changing its pixel to the background color.
-			display.drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
+			baseSprite->drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
 
 			// Update the position of the star.
 			stars[i].update();
 
 			// If the star's Y position is off the screen after the update.
-			if(stars[i].y >= display.height())
+			if(stars[i].y >= baseSprite->height())
 			{
 				// Randomize its position.
-				stars[i].randomize(0, display.width(), 0, display.height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
+				stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
 				// Set its Y position back to the top.
 				stars[i].y = 0;
 			}
 
 			// Draw the star at its new coordinate.
-			display.fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
+			baseSprite->fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
 		}
 		if(millis() - blinkMillis >= 250)
 		{
 			blinkMillis = millis();
 			blinkState = !blinkState;
 		}
-		display.setTextColor(TFT_WHITE);
-		display.drawIcon(titleLogo, 4, 10, 60, 18, 2, TFT_BLACK);
-		display.setTextColor(TFT_RED);
-		display.setFreeFont(TT1);
-		display.setTextSize(2);
-		display.setCursor(10, 80);
-		display.printCenter("START");
-		display.setCursor(10, 100);
-		display.printCenter("HIGHSCORES");
-		display.setCursor(10, 120);
-		display.printCenter("QUIT");
+		baseSprite->setTextColor(TFT_WHITE);
+		baseSprite->drawIcon(titleLogo, 4, 10, 60, 18, 2, TFT_BLACK);
+		baseSprite->setTextColor(TFT_RED);
+		baseSprite->setFreeFont(TT1);
+		baseSprite->setTextSize(2);
+		baseSprite->setCursor(10, 80);
+		baseSprite->printCenter("START");
+		baseSprite->setCursor(10, 100);
+		baseSprite->printCenter("HIGHSCORES");
+		baseSprite->setCursor(10, 120);
+		baseSprite->printCenter("QUIT");
 		if(blinkState)
 		{
-			display.drawRect(15, 67 + cursor * 20, 98, 16, TFT_RED);
-			display.drawRect(14, 66 + cursor * 20, 100, 18, TFT_RED);
+			baseSprite->drawRect(15, 67 + cursor * 20, 98, 16, TFT_RED);
+			baseSprite->drawRect(14, 66 + cursor * 20, 100, 18, TFT_RED);
 		}
 		if(buttons.released(BTN_UP) && cursor > 0)
 		{
@@ -908,28 +913,28 @@ void enterInitials() {
       elapsedMillis = millis();
     }
 	
-	display.fillScreen(TFT_BLACK);
-    display.setCursor(16, 8);
-    display.setTextFont(2);
-    display.setTextColor(TFT_WHITE);
-    display.setTextSize(1);
-    display.printCenter("ENTER NAME");
-    display.setCursor(20, 80);
+	baseSprite->clear(TFT_BLACK);
+    baseSprite->setCursor(16, 8);
+    baseSprite->setTextFont(2);
+    baseSprite->setTextColor(TFT_WHITE);
+    baseSprite->setTextSize(1);
+    baseSprite->printCenter("ENTER NAME");
+    baseSprite->setCursor(20, 80);
 	
     if(hiscoreBlink && score > tempScore)
-      display.printCenter("NEW HIGH!");
+      baseSprite->printCenter("NEW HIGH!");
     else
-      display.printf("SCORE: %04d", score);
+      baseSprite->printf("SCORE: %04d", score);
 
-    display.setCursor(40, 40);
-    display.print(name[0]);
-	display.setCursor(55, 40);
-    display.print(name[1]);
-	display.setCursor(70, 40);
-    display.print(name[2]);
-    // display.drawRect(30, 38, 100, 20, TFT_WHITE);
+    baseSprite->setCursor(40, 40);
+    baseSprite->print(name[0]);
+	baseSprite->setCursor(55, 40);
+    baseSprite->print(name[1]);
+	baseSprite->setCursor(70, 40);
+    baseSprite->print(name[2]);
+    // baseSprite->drawRect(30, 38, 100, 20, TFT_WHITE);
 	if(blinkState){
-		display.drawFastHLine(38 + 15*charCursor, 56, 12, TFT_WHITE);
+		baseSprite->drawFastHLine(38 + 15*charCursor, 56, 12, TFT_WHITE);
 	}
 	if (buttons.repeat(BTN_UP, 20)) {
 		blinkState = 1;
@@ -971,28 +976,17 @@ void enterInitials() {
 */
 
 void setup() {
-	Serial.begin(115200);
-	delay(5);
 	gpio_init();
-	pinMode(BL_PIN, OUTPUT);
-	digitalWrite(BL_PIN, 1);
+	display.begin();
+	Serial.begin(115200);
 	Serial.println("BL on");
-	tft.init();
-	tft.invertDisplay(0);
-	tft.setRotation(0);
-	display.setColorDepth(8); // Set colour depth of Sprite to 8 (or 16) bits
-	display.createSprite(128, 128);
-	display.setRotation(0);
-	display.fillScreen(TFT_BLACK);
-	// display.fillRect(10,10,20,20,TFT_RED);
-	display.drawBitmap(0,0, playership[0], TFT_RED);
-	display.pushSprite(0, 0);
+	baseSprite->clear(TFT_BLACK);
+	display.commit();
 	Serial.println("display ok");
 	buttons.begin();
 	Serial.println("buttons begin");
 	SPIFFS.begin();
 	Serial.println("spiffs begin");
-	
 
 	// shootSound = new MPTrack("/Invaderz/shoot.wav");
 	// invaderDestroyed = new MPTrack("/Invaderz/invaderDestroyed.wav");
@@ -1002,8 +996,8 @@ void setup() {
 	// gameoverMusic = new MPTrack("/Invaderz/gameover.wav");
 	// ufoSound = new MPTrack("/Invaderz/ufo.wav");
 
-	display.fillScreen(TFT_BLACK);
-	// display.fillRect(0,0,20,20,TFT_RED);
+	baseSprite->clear(TFT_BLACK);
+	// baseSprite->fillRect(0,0,20,20,TFT_RED);
 	starsSetup();
 	gamestatus = "title";
 	File file = SPIFFS.open(highscoresPath, "r");
@@ -1047,26 +1041,26 @@ void loop() {
 	if (gamestatus == "newlevel") { newlevel(); } // new level
 
 	if (gamestatus == "running") { // game running loop
-	display.fillScreen(TFT_BLACK);
+	baseSprite->clear(TFT_BLACK);
 	for(int i = 0; i < STAR_COUNT; i++)
 	{
 	// Remove the star from the screen by changing its pixel to the background color.
-	display.drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
+	baseSprite->drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
 
 	// Update the position of the star.
 	stars[i].update();
 
 	// If the star's Y position is off the screen after the update.
-	if(stars[i].y >= display.height())
+	if(stars[i].y >= baseSprite->height())
 	{
 		// Randomize its position.
-		stars[i].randomize(0, display.width(), 0, display.height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
+		stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
 		// Set its Y position back to the top.
 		stars[i].y = 0;
 	}
 
 	// Draw the star at its new coordinate.
-	display.fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
+	baseSprite->fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
 	yield();
 	}
 	if (buttons.released(BTN_B))
@@ -1094,14 +1088,14 @@ void loop() {
 		// end of: gamestatus = running
 }
 	if (gamestatus == "gameover") { // game over
-		display.setTextColor(TFT_RED);
-		display.setTextSize(2);
-		display.setTextFont(1);
-		display.drawRect(5, 45, 118, 38, TFT_WHITE);
-		display.drawRect(4, 44, 120, 40, TFT_WHITE);
-		display.fillRect(6, 46, 116, 36, TFT_BLACK);
-		display.setCursor(47, 57);
-		display.printCenter("GAME OVER");
+		baseSprite->setTextColor(TFT_RED);
+		baseSprite->setTextSize(2);
+		baseSprite->setTextFont(1);
+		baseSprite->drawRect(5, 45, 118, 38, TFT_WHITE);
+		baseSprite->drawRect(4, 44, 120, 40, TFT_WHITE);
+		baseSprite->fillRect(6, 46, 116, 36, TFT_BLACK);
+		baseSprite->setCursor(47, 57);
+		baseSprite->printCenter("GAME OVER");
 		// removeTrack(mainMusic);
 		// addTrack(gameoverMusic);
 		// gameoverMusic->play();
@@ -1188,15 +1182,15 @@ void loop() {
 	if(gamestatus == "paused")
 	{
 		while (!buttons.released(BTN_A)) {
-			display.fillScreen(TFT_BLACK);
-			display.setTextColor(TFT_RED);
-			display.setCursor(0, display.height()/2 - 18);
-			display.setTextFont(2);
-			display.setTextSize(2);
-			display.printCenter("Paused");
-			display.setCursor(4, 110);
-			display.setFreeFont(TT1);
-			display.printCenter("A:RESUME  B:QUIT");
+			baseSprite->clear(TFT_BLACK);
+			baseSprite->setTextColor(TFT_RED);
+			baseSprite->setCursor(0, baseSprite->height()/2 - 18);
+			baseSprite->setTextFont(2);
+			baseSprite->setTextSize(2);
+			baseSprite->printCenter("Paused");
+			baseSprite->setCursor(4, 110);
+			baseSprite->setFreeFont(TT1);
+			baseSprite->printCenter("A:RESUME  B:QUIT");
 			if (buttons.released(BTN_B))
 			{
 				// removeTrack(mainMusic);
