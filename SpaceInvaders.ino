@@ -22,8 +22,9 @@
 //----------------------------------------------------------------------------    
 #include <Arduino.h>
 #include <CircuitOS.h>
-#include <TFT_eSPI.h>
-#include "src/Buttons/Buttons.h"
+#include <Input/I2cExpander.h>
+#include <Input/InputI2C.h>
+#include <Update/UpdateManager.h>
 #include "src/Star.h"
 #include <ArduinoJson.h>
 #include <spiffs_api.h>
@@ -31,8 +32,8 @@
 #include <avr/pgmspace.h>
 StaticJsonBuffer<8000> jb;
 
-
-Buttons buttons;
+I2cExpander i2c;
+InputI2C buttons(&i2c);
 uint32_t lastFrameCount = millis();
 uint32_t frameSpeed = 40;
 
@@ -46,6 +47,7 @@ uint32_t frameSpeed = 40;
 #define TT1 &TomThumb
 #define BUZZ_PIN 12
 #define BL_PIN 16
+#define NO_KEY '\0'
 
 Display display(128, 128, BL_PIN, 0);
 Sprite *baseSprite = display.getBaseSprite();
@@ -90,7 +92,16 @@ int saucers;
 int saucertimer;
 int saucerwait;
 int delayBip;
-
+uint32_t blinkMillis = millis();
+bool blinkState = 0;
+unsigned long elapsedMillis = millis();
+uint16_t hiscoresSize = 0;
+char nameArray[6][4];
+uint16_t scoreArray[6];
+uint8_t charCursor = 0;
+String previous = "";
+uint32_t hiscoreMillis = millis();
+bool hiscoreBlink = 0;
 // MPTrack *shootSound;
 // MPTrack *invaderDestroyed;
 // MPTrack *mainMusic;
@@ -238,15 +249,15 @@ bool update()
 {
 	yield();
 	delay(5);
-	buttons.update();
-	if (millis() - lastFrameCount >= frameSpeed)
-	{
-		lastFrameCount = millis();
-		display.commit();
-		return true;
-	}
-	else
-		return false;
+	// buttons.update();
+	// if (millis() - lastFrameCount >= frameSpeed)
+	// {
+	// 	lastFrameCount = millis();
+	display.commit();
+	// 	return true;
+	// }
+	// else
+	// 	return false;
 
 }
 
@@ -261,18 +272,13 @@ void newgame() {
 	shoty = -1;
 	deadcounter = -1;
 	saucers = -1;
-	// removeTrack(titleMusic);
-	// addTrack(mainMusic);
-	// mainMusic->play();
-	// addTrack(shootSound);
-	// addTrack(invaderDestroyed);
-	// addTrack(playerDestroyed);
 	starsSetup();
 	for (int i = 0; i < 4; i++) {
 		invadershotx[i] = -1;
 		invadershoty[i] = -1;
 	}
 	gamestatus = "newlevel";
+	setButtonsCallbacks();
 }
 //----------------------------------------------------------------------------
 void newlevel() {
@@ -357,26 +363,27 @@ void handledeath() {
 
 //ported specific
 //----------------------------------------------------------------------------
-void checkbuttons() {
-	if (shipx < 0) shipx = 0;
-
-	if (buttons.repeat(BTN_LEFT, 1) && shipx > 0 && deadcounter == -1) {
-		shipx-=1;
-	}
-	if (buttons.repeat(BTN_RIGHT, 1) && shipx < 111 && deadcounter == -1) {
-		shipx+=1;
-	}
-
-	if (buttons.pressed(BTN_A) && shotx == -1 && deadcounter == -1) {
-		shotx = shipx + 6;
-		shoty = 106;
-		// shoot->setADSR(10,10,15,20);
-		// shoot->note(70, 0.05);
-		tone(BUZZ_PIN, 400, 50);
-		// shootSound->play();
-	}
-//   if(millis()-pixelsTimer >= 50 && pixelsState==1){
-	// noTone(BUZZ_PIN)
+void setButtonsCallbacks() {
+	buttons.setButtonHeldRepeatCallback(BTN_LEFT, 250, [](uint){
+		if (shipx > 0 && deadcounter == -1) {
+			shipx-=1;
+		}
+	});
+	buttons.setButtonHeldRepeatCallback(BTN_LEFT, 250, [](uint){
+		if (shipx < 111 && deadcounter == -1) {
+			shipx+=1;
+		}
+	});
+	buttons.setBtnPressCallback(BTN_A, [](){
+		if (shotx == -1 && deadcounter == -1) {
+			shotx = shipx + 6;
+			shoty = 106;
+			tone(BUZZ_PIN, 400, 50);
+		}
+	});
+	buttons.setBtnPressCallback(BTN_B, [](){
+		gamestatus = "paused";
+	});
 }
 //----------------------------------------------------------------------------
 void drawplayership() {
@@ -683,219 +690,241 @@ void drawsaucer() {
 	}
 }
 
+
 //----------------------------------------------------------------------------
+void eraseDataSetup()
+{
+	elapsedMillis = millis();
+	blinkState = 1;
+	buttons.setBtnPressCallback(BTN_B, [](){
+		gamestatus = "dataDisplay";
+
+	});
+	buttons.setBtnPressCallback(BTN_A, [](){
+		JsonArray &empty = jb.createArray();
+		File file = SPIFFS.open(highscoresPath, "w");
+		empty.prettyPrintTo(file);
+		file.close();
+		gamestatus = "title";
+
+	});
+}
 void eraseData()
 {
-	unsigned long elapsedMillis = millis();
-	bool blinkState = 1;
-	while(1)
-	{
-		baseSprite->clear(TFT_BLACK);
-		baseSprite->setTextFont(2);
+	baseSprite->clear(TFT_BLACK);
+	baseSprite->setTextFont(2);
 
-		if (millis() - elapsedMillis >= multi_tap_threshold) {
-			elapsedMillis = millis();
-			blinkState = !blinkState;
-		}
-
-		baseSprite->setTextColor(TFT_WHITE);
-		baseSprite->setCursor(4, 5);
-		baseSprite->printCenter("ARE YOU SURE?");
-		baseSprite->setCursor(4, 25);
-		baseSprite->printCenter("This cannot");
-		baseSprite->setCursor(4, 41);
-		baseSprite->printCenter("be reverted!");
-
-		if (blinkState){
-			baseSprite->drawRect((baseSprite->width() - 60)/2, 102, 30*2, 9*2, TFT_RED);
-			baseSprite->setTextColor(TFT_RED);
-			baseSprite->setCursor(28*2, 103);
-			baseSprite->printCenter("DELETE");
-		}
-		else {
-			baseSprite->fillRect((baseSprite->width() - 60)/2, 102, 30*2, 9*2, TFT_RED);
-			baseSprite->setTextColor(TFT_WHITE);
-			baseSprite->setCursor(28*2, 103);
-			baseSprite->printCenter("DELETE");
-		}
-		if (buttons.released(BTN_B)) //BUTTON BACK
-		{
-			Serial.println("Go back");
-			buttons.update();
-			break;
-		}
-		if (buttons.released(BTN_A)) // DELETE
-		{
-			buttons.update();
-			JsonArray &empty = jb.createArray();
-			File file = SPIFFS.open(highscoresPath, "w");
-			empty.prettyPrintTo(file);
-			file.close();
-			gamestatus = "title";
-			break;
-		}
-		update();
-		yield();
+	if (millis() - elapsedMillis >= 350) {
+		elapsedMillis = millis();
+		blinkState = !blinkState;
 	}
-	while(!update()) yield();
+
+	baseSprite->setTextColor(TFT_WHITE);
+	baseSprite->setCursor(4, 5);
+	baseSprite->printCenter("ARE YOU SURE?");
+	baseSprite->setCursor(4, 25);
+	baseSprite->printCenter("This cannot");
+	baseSprite->setCursor(4, 41);
+	baseSprite->printCenter("be reverted!");
+
+	if (blinkState){
+		baseSprite->drawRect((baseSprite->width() - 60)/2, 102, 30*2, 9*2, TFT_RED);
+		baseSprite->setTextColor(TFT_RED);
+		baseSprite->setCursor(28*2, 103);
+		baseSprite->printCenter("DELETE");
+	}
+	else {
+		baseSprite->fillRect((baseSprite->width() - 60)/2, 102, 30*2, 9*2, TFT_RED);
+		baseSprite->setTextColor(TFT_WHITE);
+		baseSprite->setCursor(28*2, 103);
+		baseSprite->printCenter("DELETE");
+	}
 }
 
-void dataDisplay()
+void dataDisplaySetup()
 {
-	// shootSound->stop();
-	// titleMusic->stop();
-	// invaderDestroyed->stop();
-	// playerDestroyed->stop();
-	// removeTrack(shootSound);
-	// removeTrack(titleMusic);
-	// removeTrack(invaderDestroyed);
-	// removeTrack(playerDestroyed);
 	jb.clear();
 	File file = SPIFFS.open(highscoresPath, "r");
 	JsonArray &hiscores = jb.parseArray(file);
 	file.close();
-	char nameArray[6][4];
-	uint16_t scoreArray[6];
 	memset(scoreArray, 0, 6);
-	uint16_t hiscoresSize = hiscores.size();
+	hiscoresSize = hiscores.size();
 	for(uint8_t i = 0; i < 6; i++)
 	{
-	for(JsonObject& element:hiscores)
-	{
-	if(element["Rank"] == i)
-	{
-		strncpy(nameArray[i], element["Name"], 4);
-		scoreArray[i] = element["Score"];
+		for(JsonObject& element:hiscores)
+		{
+			if(element["Rank"] == i)
+			{
+				strncpy(nameArray[i], element["Name"], 4);
+				scoreArray[i] = element["Score"];
+			}
+			yield();
+		}
 	}
-	yield();
-	}
+	buttons.setBtnPressCallback(BTN_A, [](){
+		gamestatus = "title";
+	});
+	buttons.setBtnPressCallback(BTN_B, [](){
+		gamestatus = "title";
+	});
+	buttons.setBtnPressCallback(BTN_C, [](){
+		gamestatus = "eraseData";
+	});
 }
-	while(1)
+void dataDisplay()
+{
+	baseSprite->clear(TFT_BLACK);
+	baseSprite->setCursor(32, -2);
+	baseSprite->setTextSize(1);
+	baseSprite->setTextFont(2);
+	baseSprite->setTextColor(TFT_RED);
+	baseSprite->printCenter("HIGHSCORES");
+	baseSprite->setCursor(3, 110);
+	for (int i = 1; i < 6;i++)
 	{
-		baseSprite->clear(TFT_BLACK);
-		baseSprite->setCursor(32, -2);
-		baseSprite->setTextSize(1);
-		baseSprite->setTextFont(2);
-		baseSprite->setTextColor(TFT_RED);
-		baseSprite->printCenter("HIGHSCORES");
-		baseSprite->setCursor(3, 110);
-		for (int i = 1; i < 6;i++)
-		{
-			baseSprite->setCursor(6, i * 20);
-			if(i <= hiscoresSize)
-				baseSprite->printf("%d.   %.3s    %04d", i, nameArray[i], scoreArray[i]);
-			else
-				baseSprite->printf("%d.    ---   ----", i);
-		}
-		baseSprite->setCursor(2, 115);
-		baseSprite->print("Erase");
-		if (buttons.released(BTN_B) || buttons.released(BTN_A))
-		{
-			buttons.update();
-			gamestatus = "title";
-			break;
-		}
-		if (buttons.released(BTN_C))
-		{
-			buttons.update();
-
-			eraseData();
-			break;
-		}
-		update();
-		yield();
+		baseSprite->setCursor(6, i * 20);
+		if(i <= hiscoresSize)
+			baseSprite->printf("%d.   %.3s    %04d", i, nameArray[i], scoreArray[i]);
+		else
+			baseSprite->printf("%d.    ---   ----", i);
 	}
-	// addTrack(titleMusic);
-	// titleMusic->play();
-	// titleMusic->setRepeat(1);
+	baseSprite->setCursor(2, 115);
+	baseSprite->print("Erase");
 }
 void showtitle() {
-	cursor = 0;
-	uint32_t blinkMillis = millis();
-	bool blinkState = 0;
-	while(!buttons.released(BTN_A))
+	baseSprite->clear(TFT_BLACK);
+	for(int i = 0; i < STAR_COUNT; i++)
 	{
-		baseSprite->clear(TFT_BLACK);
-		for(int i = 0; i < STAR_COUNT; i++)
-		{
-			// Remove the star from the screen by changing its pixel to the background color.
-			baseSprite->drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
+		// Remove the star from the screen by changing its pixel to the background color.
+		baseSprite->drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
 
-			// Update the position of the star.
-			stars[i].update();
+		// Update the position of the star.
+		stars[i].update();
 
-			// If the star's Y position is off the screen after the update.
-			if(stars[i].y >= baseSprite->height())
-			{
-				// Randomize its position.
-				stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
-				// Set its Y position back to the top.
-				stars[i].y = 0;
-			}
+		// If the star's Y position is off the screen after the update.
+		if(stars[i].y >= baseSprite->height())
+		{
+			// Randomize its position.
+			stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
+			// Set its Y position back to the top.
+			stars[i].y = 0;
+		}
 
-			// Draw the star at its new coordinate.
-			baseSprite->fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
-		}
-		if(millis() - blinkMillis >= 250)
-		{
-			blinkMillis = millis();
-			blinkState = !blinkState;
-		}
-		baseSprite->setTextColor(TFT_WHITE);
-		baseSprite->drawIcon(titleLogo, 4, 10, 60, 18, 2, TFT_BLACK);
-		baseSprite->setTextColor(TFT_RED);
-		baseSprite->setFreeFont(TT1);
-		baseSprite->setTextSize(2);
-		baseSprite->setCursor(10, 80);
-		baseSprite->printCenter("START");
-		baseSprite->setCursor(10, 100);
-		baseSprite->printCenter("HIGHSCORES");
-		baseSprite->setCursor(10, 120);
-		baseSprite->printCenter("QUIT");
-		if(blinkState)
-		{
-			baseSprite->drawRect(15, 67 + cursor * 20, 98, 16, TFT_RED);
-			baseSprite->drawRect(14, 66 + cursor * 20, 100, 18, TFT_RED);
-		}
-		if(buttons.released(BTN_UP) && cursor > 0)
+		// Draw the star at its new coordinate.
+		baseSprite->fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
+	}
+	if(millis() - blinkMillis >= 250)
+	{
+		blinkMillis = millis();
+		blinkState = !blinkState;
+	}
+	baseSprite->setTextColor(TFT_WHITE);
+	baseSprite->drawIcon(titleLogo, 4, 10, 60, 18, 2, TFT_BLACK);
+	baseSprite->setTextColor(TFT_RED);
+	baseSprite->setFreeFont(TT1);
+	baseSprite->setTextSize(2);
+	baseSprite->setCursor(10, 80);
+	baseSprite->printCenter("START");
+	baseSprite->setCursor(10, 100);
+	baseSprite->printCenter("HIGHSCORES");
+	baseSprite->setCursor(10, 120);
+	baseSprite->printCenter("QUIT");
+	if(blinkState)
+	{
+		baseSprite->drawRect(15, 67 + cursor * 20, 98, 16, TFT_RED);
+		baseSprite->drawRect(14, 66 + cursor * 20, 100, 18, TFT_RED);
+	}
+
+	
+	
+}
+void titleSetup()
+{
+	cursor = 0;
+	blinkMillis = millis();
+	blinkState = 0;
+	buttons.setBtnPressCallback(BTN_UP, [](){
+		if(cursor > 0)
 		{
 			cursor--;
-			buttons.update();
 			blinkMillis = millis();
 			blinkState = 1;
 		}
-		if(buttons.released(BTN_DOWN) && cursor < 2)
+	});
+	buttons.setBtnPressCallback(BTN_DOWN, [](){
+		if(cursor < 2)
 		{
 			cursor++;
-			buttons.update();
 			blinkMillis = millis();
 			blinkState = 1;
-		}		
-		update();
-	}
-	while(!update()) yield();
-	switch (cursor)
-	{
-		case 0:
-			gamestatus = "newgame";
-			break;
-		case 1:
-			dataDisplay();
-			break;
-	}
+		}
+	});
+	
+	buttons.setBtnPressCallback(BTN_A, [](){
+		
+		switch (cursor)
+		{
+			case 0:
+				gamestatus = "newgame";
+				break;
+			case 1:
+				gamestatus = "dataDisplay";
+				break;
+		}
+	});
 }
 
+void enterInitialsSetup()
+{
+	name = "AAA";
+	charCursor = 0;
+	previous = "";
+	elapsedMillis = millis();
+	hiscoreMillis = millis();
+	blinkState = 1;
+	hiscoreBlink = 0;
+	buttons.setButtonHeldRepeatCallback(BTN_UP, 800, [](uint){
+		blinkState = 1;
+		elapsedMillis = millis();
+		name[charCursor]++;
+		// A-Z 0-9 :-? !-/ ' '
+		if (name[charCursor] == '0') name[charCursor] = ' ';
+		if (name[charCursor] == '!') name[charCursor] = 'A';
+		if (name[charCursor] == '[') name[charCursor] = '0';
+		if (name[charCursor] == '@') name[charCursor] = '!';
+	});
+	buttons.setButtonHeldRepeatCallback(BTN_DOWN, 800, [](uint){
+		blinkState = 1;
+		elapsedMillis = millis();
+		name[charCursor]--;
+		if (name[charCursor] == ' ') name[charCursor] = '?';
+		if (name[charCursor] == '/') name[charCursor] = 'Z';
+		if (name[charCursor] == 31)  name[charCursor] = '/';
+		if (name[charCursor] == '@') name[charCursor] = ' ';
+	});
+	buttons.setBtnPressCallback(BTN_LEFT, [](){
+		if(charCursor > 0){
+			charCursor--;
+			blinkState = 1;
+			elapsedMillis = millis();
+		}
+	});
+	buttons.setBtnPressCallback(BTN_RIGHT, [](){
+		if(charCursor < 2){
+			charCursor++;
+			blinkState = 1;
+			elapsedMillis = millis();
+		}
+	});
+	buttons.setBtnPressCallback(BTN_A, [](){
+		charCursor++;
+		blinkState = 1;
+		elapsedMillis = millis();
+	});
+}
 void enterInitials() {
-  name = "AAA";
-  uint8_t charCursor = 0;
-  String previous = "";
-  uint32_t elapsedMillis = millis();
-  uint32_t hiscoreMillis = millis();
-  bool blinkState = 1;
-  bool hiscoreBlink = 0;
-  while (charCursor < 3) {
-    update();
-    if (millis() - elapsedMillis >= multi_tap_threshold) //cursor blinking routine
+  
+    if (millis() - elapsedMillis >= 350) //cursor blinking routine
 	{
 		elapsedMillis = millis();
 		blinkState = !blinkState;
@@ -936,37 +965,62 @@ void enterInitials() {
 	if(blinkState){
 		baseSprite->drawFastHLine(38 + 15*charCursor, 56, 12, TFT_WHITE);
 	}
-	if (buttons.repeat(BTN_UP, 20)) {
-		blinkState = 1;
-		elapsedMillis = millis();
-		name[charCursor]++;
-		// A-Z 0-9 :-? !-/ ' '
-		if (name[charCursor] == '0') name[charCursor] = ' ';
-		if (name[charCursor] == '!') name[charCursor] = 'A';
-		if (name[charCursor] == '[') name[charCursor] = '0';
-		if (name[charCursor] == '@') name[charCursor] = '!';
+
+
+	if(charCursor >= 3)
+	{
+		File file = SPIFFS.open(highscoresPath, "r");
+		jb.clear();
+		JsonArray &hiscores2 = jb.parseArray(file);
+		file.close();
+		JsonObject &newHiscore = jb.createObject();
+		newHiscore["Name"] = name;
+		newHiscore["Score"] = score;
+		newHiscore["Rank"] = 1;
+
+		if(savePresent && hiscores2.size() > 0)
+		{
+			newHiscore["Rank"] = 999;
+			Serial.println(hiscores2.size());
+			uint16_t tempSize = hiscores2.size();
+			for (int16_t i = 0; i < tempSize;i++)//searching for a place in the leaderboard for our new score
+			{
+				Serial.printf("i: %d\n", i);
+				Serial.println((uint16_t)(hiscores2[i]["Rank"]));
+				Serial.println((uint16_t)(hiscores2[i]["Score"]));
+				delay(5);
+				if(score >= (uint16_t)(hiscores2[i]["Score"]))
+				{
+					Serial.println("ENTERED");
+					delay(5);
+					if((uint16_t)(newHiscore["Rank"]) >  (uint16_t)(hiscores2[i]["Rank"]))
+					{
+						newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]);
+					}
+					JsonObject &tempObject = jb.createObject();
+					tempObject["Name"] = (const char *)(hiscores2[i]["Name"]);
+					tempObject["Score"] = (uint16_t)(hiscores2[i]["Score"]);
+					tempObject["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
+					tempObject.prettyPrintTo(Serial);
+					delay(5);
+					hiscores2.remove(i);
+					hiscores2.add(tempObject);
+					tempSize--;
+					i--;
+				}
+				else
+				{
+					if(newHiscore["Rank"] <= (uint16_t)(hiscores2[i]["Rank"]) || newHiscore["Rank"] == 999)
+						newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
+				}
+			}
+		}
+		hiscores2.add(newHiscore);
+		file = SPIFFS.open(highscoresPath, "w");
+		hiscores2.prettyPrintTo(file);
+		file.close();
+		gamestatus = "dataDisplay";
 	}
-	if (buttons.repeat(BTN_DOWN, 20)) {
-		blinkState = 1;
-		elapsedMillis = millis();
-		name[charCursor]--;
-		if (name[charCursor] == ' ') name[charCursor] = '?';
-		if (name[charCursor] == '/') name[charCursor] = 'Z';
-		if (name[charCursor] == 31)  name[charCursor] = '/';
-		if (name[charCursor] == '@') name[charCursor] = ' ';
-	}
-	if(buttons.released(BTN_LEFT) && charCursor > 0){
-		charCursor--;
-		blinkState = 1;
-		elapsedMillis = millis();
-	}
-	if((buttons.released(BTN_RIGHT) && charCursor < 2)  || buttons.released(BTN_A)){
-		charCursor++;
-		blinkState = 1;
-		elapsedMillis = millis();
-  	}
-  }
-  while(!update()) yield();
 }
 
 /*
@@ -977,16 +1031,18 @@ void enterInitials() {
 
 void setup() {
 	gpio_init();
+	i2c.begin(0x74, 4, 5);
 	display.begin();
 	Serial.begin(115200);
 	Serial.println("BL on");
 	baseSprite->clear(TFT_BLACK);
 	display.commit();
 	Serial.println("display ok");
-	buttons.begin();
 	Serial.println("buttons begin");
 	SPIFFS.begin();
 	Serial.println("spiffs begin");
+	UpdateManager::addListener(&buttons);
+
 
 	// shootSound = new MPTrack("/Invaderz/shoot.wav");
 	// invaderDestroyed = new MPTrack("/Invaderz/invaderDestroyed.wav");
@@ -1017,23 +1073,29 @@ void setup() {
 		file.close();
 	}
 	hiscores.prettyPrintTo(Serial);
-
 	Serial.println("saves ok");
-	// shoot->play();
-// gameoverMusic->setRepeat(1);
-// mainMusic->setRepeat(1);
-// addTrack(titleMusic);
-// titleMusic->setRepeat(1);
-// titleMusic->play();
-
-	
 }
-
+String prevGamestatus = gamestatus;
+bool screenChange = 0;
 //----------------------------------------------------------------------------    
 // loop
 //----------------------------------------------------------------------------    
 void loop() {
+	if(gamestatus != prevGamestatus)
+	{
+		screenChange = 1;
+		prevGamestatus = gamestatus;
+	}
+	else
+	{
+		screenChange = 0;
+	}
+	
 	if (gamestatus == "title") {
+		if(screenChange)
+		{
+			titleSetup();
+		}
 		showtitle();
 	}
 	if (gamestatus == "newgame") { newgame(); } // new game
@@ -1041,53 +1103,74 @@ void loop() {
 	if (gamestatus == "newlevel") { newlevel(); } // new level
 
 	if (gamestatus == "running") { // game running loop
-	baseSprite->clear(TFT_BLACK);
-	for(int i = 0; i < STAR_COUNT; i++)
-	{
-	// Remove the star from the screen by changing its pixel to the background color.
-	baseSprite->drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
+		baseSprite->clear(TFT_BLACK);
+		for(int i = 0; i < STAR_COUNT; i++)
+		{
+			// Remove the star from the screen by changing its pixel to the background color.
+			baseSprite->drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
 
-	// Update the position of the star.
-	stars[i].update();
+			// Update the position of the star.
+			stars[i].update();
 
-	// If the star's Y position is off the screen after the update.
-	if(stars[i].y >= baseSprite->height())
-	{
-		// Randomize its position.
-		stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
-		// Set its Y position back to the top.
-		stars[i].y = 0;
-	}
+			// If the star's Y position is off the screen after the update.
+			if(stars[i].y >= baseSprite->height())
+			{
+				// Randomize its position.
+				stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
+				// Set its Y position back to the top.
+				stars[i].y = 0;
+			}
 
-	// Draw the star at its new coordinate.
-	baseSprite->fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
-	yield();
+			// Draw the star at its new coordinate.
+			baseSprite->fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
+			yield();
+		}
+		showscore();
+		// checkbuttons(); // check buttons && move playership
+		drawplayership(); // draw player ship
+		drawplayershot(); // move + draw player shoot
+		invaderlogic(); // invader logic
+		drawinvaders(); // draw invaders
+		invadershot(); // invaders shoot
+		nextlevelcheck(); // next level?
+		drawbunkers(); // draw bunkers & check collission with player shot
+		saucerappears(); // saucer appears?
+		movesaucer(); // move saucer
+		drawsaucer(); // draw saucer & remove if hit
+		showscore(); // show lives, score, level
 	}
-	if (buttons.released(BTN_B))
-	{
-	// if(mainMusic->isPlaying())
-	// mainMusic->pause();
-	// if(ufoSound->isPlaying())
-	// ufoSound->pause();
-	gamestatus = "paused";
-	buttons.update();
-	}
-	showscore();
-	checkbuttons(); // check buttons && move playership
-	drawplayership(); // draw player ship
-	drawplayershot(); // move + draw player shoot
-	invaderlogic(); // invader logic
-	drawinvaders(); // draw invaders
-	invadershot(); // invaders shoot
-	nextlevelcheck(); // next level?
-	drawbunkers(); // draw bunkers & check collission with player shot
-	saucerappears(); // saucer appears?
-	movesaucer(); // move saucer
-	drawsaucer(); // draw saucer & remove if hit
-	showscore(); // show lives, score, level
-		// end of: gamestatus = running
-}
 	if (gamestatus == "gameover") { // game over
+
+		if(screenChange){
+			buttons.setBtnPressCallback(BTN_A, [](){
+				File file = SPIFFS.open(highscoresPath, "r");
+				JsonArray &hiscores = jb.parseArray(file);
+				file.close();
+				for (JsonObject& element : hiscores)
+				{
+					if(element["Rank"] == 1)
+						tempScore = element["Score"].as<int>();
+				}
+				hiscores.end();
+				Serial.println("HERE");
+				delay(5);
+				gamestatus = "enterInitials";
+			});
+			buttons.setBtnPressCallback(BTN_B, [](){
+				File file = SPIFFS.open(highscoresPath, "r");
+				JsonArray &hiscores = jb.parseArray(file);
+				file.close();
+				for (JsonObject& element : hiscores)
+				{
+					if(element["Rank"] == 1)
+						tempScore = element["Score"].as<int>();
+				}
+				hiscores.end();
+				Serial.println("HERE");
+				delay(5);
+				gamestatus = "enterInitials";
+			});
+		}
 		baseSprite->setTextColor(TFT_RED);
 		baseSprite->setTextSize(2);
 		baseSprite->setTextFont(1);
@@ -1096,119 +1179,49 @@ void loop() {
 		baseSprite->fillRect(6, 46, 116, 36, TFT_BLACK);
 		baseSprite->setCursor(47, 57);
 		baseSprite->printCenter("GAME OVER");
-		// removeTrack(mainMusic);
-		// addTrack(gameoverMusic);
-		// gameoverMusic->play();
-		if(buttons.released(BTN_B) || buttons.released(BTN_A))
-		{
-			// removeTrack(gameoverMusic);
-			// removeTrack(shootSound);
-			// removeTrack(invaderDestroyed);
-			// removeTrack(playerDestroyed);
-			// removeTrack(shootSound);
-			// removeTrack(invaderDestroyed);
-			File file;
-			file = SPIFFS.open(highscoresPath, "r");
-			JsonArray &hiscores = jb.parseArray(file);
-			file.close();
-			for (JsonObject& element : hiscores)
-			{
-				if(element["Rank"] == 1)
-					tempScore = element["Score"].as<int>();
-			}
-			hiscores.end();
-			Serial.println("HERE");
-			delay(5);
-			
-			enterInitials();
-			file = SPIFFS.open(highscoresPath, "r");
-			jb.clear();
-			JsonArray &hiscores2 = jb.parseArray(file);
-			file.close();
-			JsonObject &newHiscore = jb.createObject();
-			newHiscore["Name"] = name;
-			newHiscore["Score"] = score;
-			newHiscore["Rank"] = 1;
-
-			if(savePresent && hiscores2.size() > 0)
-			{
-				newHiscore["Rank"] = 999;
-				Serial.println(hiscores2.size());
-				uint16_t tempSize = hiscores2.size();
-				for (int16_t i = 0; i < tempSize;i++)//searching for a place in the leaderboard for our new score
-				{
-					Serial.printf("i: %d\n", i);
-					Serial.println((uint16_t)(hiscores2[i]["Rank"]));
-					Serial.println((uint16_t)(hiscores2[i]["Score"]));
-					delay(5);
-					if(score >= (uint16_t)(hiscores2[i]["Score"]))
-					{
-					Serial.println("ENTERED");
-					delay(5);
-					if((uint16_t)(newHiscore["Rank"]) >  (uint16_t)(hiscores2[i]["Rank"]))
-					{
-						newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]);
-					}
-					JsonObject &tempObject = jb.createObject();
-					tempObject["Name"] = (const char *)(hiscores2[i]["Name"]);
-					tempObject["Score"] = (uint16_t)(hiscores2[i]["Score"]);
-					tempObject["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
-					tempObject.prettyPrintTo(Serial);
-					delay(5);
-					hiscores2.remove(i);
-					hiscores2.add(tempObject);
-					tempSize--;
-					i--;
-					}
-					else
-					{
-					if(newHiscore["Rank"] <= (uint16_t)(hiscores2[i]["Rank"]) || newHiscore["Rank"] == 999)
-						newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
-					}
-				}
-			}
-			hiscores2.add(newHiscore);
-			file = SPIFFS.open(highscoresPath, "w");
-			hiscores2.prettyPrintTo(file);
-			file.close();
-			// addTrack(titleMusic);
-			// titleMusic->play();
-			// titleMusic->setRepeat(1);
-			while(!update()) yield();
-			gamestatus="title";
-			dataDisplay();
-		}
+		
 	}
 	if(gamestatus == "paused")
 	{
-		while (!buttons.released(BTN_A)) {
-			baseSprite->clear(TFT_BLACK);
-			baseSprite->setTextColor(TFT_RED);
-			baseSprite->setCursor(0, baseSprite->height()/2 - 18);
-			baseSprite->setTextFont(2);
-			baseSprite->setTextSize(2);
-			baseSprite->printCenter("Paused");
-			baseSprite->setCursor(4, 110);
-			baseSprite->setFreeFont(TT1);
-			baseSprite->printCenter("A:RESUME  B:QUIT");
-			if (buttons.released(BTN_B))
-			{
-				// removeTrack(mainMusic);
-				// removeTrack(shootSound);
-				// removeTrack(playerDestroyed);
-				// removeTrack(invaderDestroyed);
-				// addTrack(titleMusic);
-				// titleMusic->play();
-				// titleMusic->setRepeat(1);
+		if(screenChange){
+			buttons.setBtnPressCallback(BTN_A, [](){
+				gamestatus = "running";
+			});
+			buttons.setBtnPressCallback(BTN_B, [](){
 				gamestatus = "title";
-				buttons.update();
-				break;
-			}
-			update();
-			gamestatus = "running";
+			});
 		}
-		// mainMusic->resume();
-		// ufoSound->resume();
-}
-update();
+		baseSprite->clear(TFT_BLACK);
+		baseSprite->setTextColor(TFT_RED);
+		baseSprite->setCursor(0, baseSprite->height()/2 - 18);
+		baseSprite->setTextFont(2);
+		baseSprite->setTextSize(2);
+		baseSprite->printCenter("Paused");
+		baseSprite->setCursor(4, 110);
+		baseSprite->setFreeFont(TT1);
+		baseSprite->printCenter("A:RESUME  B:QUIT");
+	}
+	if(gamestatus == "eraseData")
+	{
+		if(screenChange){
+			eraseDataSetup();
+		}
+		eraseData();
+	}
+	if(gamestatus == "displayData")
+	{
+		if(screenChange){
+			dataDisplaySetup();
+		}
+		dataDisplay();
+	}
+	if(gamestatus == "enterInitials")
+	{
+		if(screenChange){
+			enterInitialsSetup();
+		}
+		enterInitials();
+	}
+	UpdateManager::update();
+	update();
 }
