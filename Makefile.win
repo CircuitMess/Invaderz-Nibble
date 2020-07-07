@@ -8,7 +8,7 @@ srcFiles = $(shell dir  /s /b *.c | findstr /e .c) $(shell dir  /s /b *.cpp | fi
 headerFiles = $(shell dir  /s /b *.h | findstr /e .h) $(shell dir  /s /b *.hpp | findstr /e .hpp)
 .PHONY: upload clean
 
-upload: $(DIR)/build/$(NAME).bin
+upload: build $(DIR)/build/$(NAME).bin
 	
 	cd $(DIR)
 	$(ACLI) upload --fqbn esp8266:esp8266:nodemcu:baud=921600 -p $(PORT) -i build/$(NAME).bin
@@ -19,8 +19,6 @@ $(DIR)/build/$(NAME).bin: $(srcFiles) $(headerFiles) $(DIR)/$(NAME).ino
 	"mkdir" -p ".\build"
 	cd $(DIR)
 	$(ACLI) compile --fqbn esp8266:esp8266:nodemcu --optimize-for-debug -o build/$(NAME).bin $(NAME).ino
-
-buildAndUpload:	build upload
 
 
 clean:

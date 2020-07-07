@@ -248,7 +248,7 @@ static const byte saucer[2][10]  = {
 bool update()
 {
 	yield();
-	delay(5);
+	// delay(5);
 	// buttons.update();
 	// if (millis() - lastFrameCount >= frameSpeed)
 	// {
@@ -267,7 +267,7 @@ void newgame() {
 	score = 0;
 	lives = 3;
 	gamelevel = 0;
-	shipx = 80;
+	shipx = 60;
 	shotx = -1;
 	shoty = -1;
 	deadcounter = -1;
@@ -363,13 +363,24 @@ void handledeath() {
 
 //ported specific
 //----------------------------------------------------------------------------
+void clearButtonCallbacks()
+{
+	for(uint8_t i = 0; i < 7; i++)
+	{
+		buttons.setBtnReleaseCallback(i, nullptr);
+		buttons.setBtnPressCallback(i, nullptr);
+		buttons.setButtonHeldRepeatCallback(i, 0, nullptr);
+		buttons.setButtonHeldCallback(i, 0, nullptr);
+	}
+}
 void setButtonsCallbacks() {
-	buttons.setButtonHeldRepeatCallback(BTN_LEFT, 250, [](uint){
+	clearButtonCallbacks();
+	buttons.setButtonHeldRepeatCallback(BTN_LEFT, 10, [](uint){
 		if (shipx > 0 && deadcounter == -1) {
 			shipx-=1;
 		}
 	});
-	buttons.setButtonHeldRepeatCallback(BTN_LEFT, 250, [](uint){
+	buttons.setButtonHeldRepeatCallback(BTN_RIGHT, 10, [](uint){
 		if (shipx < 111 && deadcounter == -1) {
 			shipx+=1;
 		}
@@ -382,6 +393,7 @@ void setButtonsCallbacks() {
 		}
 	});
 	buttons.setBtnPressCallback(BTN_B, [](){
+		Serial.println("paused");
 		gamestatus = "paused";
 	});
 }
@@ -696,6 +708,7 @@ void eraseDataSetup()
 {
 	elapsedMillis = millis();
 	blinkState = 1;
+	clearButtonCallbacks();
 	buttons.setBtnPressCallback(BTN_B, [](){
 		gamestatus = "dataDisplay";
 
@@ -761,6 +774,7 @@ void dataDisplaySetup()
 			yield();
 		}
 	}
+	clearButtonCallbacks();
 	buttons.setBtnPressCallback(BTN_A, [](){
 		gamestatus = "title";
 	});
@@ -843,6 +857,8 @@ void titleSetup()
 	cursor = 0;
 	blinkMillis = millis();
 	blinkState = 0;
+	clearButtonCallbacks();
+
 	buttons.setBtnPressCallback(BTN_UP, [](){
 		if(cursor > 0)
 		{
@@ -883,7 +899,8 @@ void enterInitialsSetup()
 	hiscoreMillis = millis();
 	blinkState = 1;
 	hiscoreBlink = 0;
-	buttons.setButtonHeldRepeatCallback(BTN_UP, 800, [](uint){
+	clearButtonCallbacks();
+	buttons.setBtnPressCallback(BTN_UP,[](){
 		blinkState = 1;
 		elapsedMillis = millis();
 		name[charCursor]++;
@@ -893,7 +910,26 @@ void enterInitialsSetup()
 		if (name[charCursor] == '[') name[charCursor] = '0';
 		if (name[charCursor] == '@') name[charCursor] = '!';
 	});
-	buttons.setButtonHeldRepeatCallback(BTN_DOWN, 800, [](uint){
+	buttons.setButtonHeldRepeatCallback(BTN_UP, 200, [](uint){
+		blinkState = 1;
+		elapsedMillis = millis();
+		name[charCursor]++;
+		// A-Z 0-9 :-? !-/ ' '
+		if (name[charCursor] == '0') name[charCursor] = ' ';
+		if (name[charCursor] == '!') name[charCursor] = 'A';
+		if (name[charCursor] == '[') name[charCursor] = '0';
+		if (name[charCursor] == '@') name[charCursor] = '!';
+	});
+	buttons.setButtonHeldRepeatCallback(BTN_DOWN, 200, [](uint){
+		blinkState = 1;
+		elapsedMillis = millis();
+		name[charCursor]--;
+		if (name[charCursor] == ' ') name[charCursor] = '?';
+		if (name[charCursor] == '/') name[charCursor] = 'Z';
+		if (name[charCursor] == 31)  name[charCursor] = '/';
+		if (name[charCursor] == '@') name[charCursor] = ' ';
+	});
+	buttons.setBtnPressCallback(BTN_DOWN, [](){
 		blinkState = 1;
 		elapsedMillis = millis();
 		name[charCursor]--;
@@ -1002,7 +1038,7 @@ void enterInitials() {
 					tempObject["Score"] = (uint16_t)(hiscores2[i]["Score"]);
 					tempObject["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
 					tempObject.prettyPrintTo(Serial);
-					delay(5);
+					// delay(5);
 					hiscores2.remove(i);
 					hiscores2.add(tempObject);
 					tempSize--;
@@ -1142,6 +1178,7 @@ void loop() {
 	if (gamestatus == "gameover") { // game over
 
 		if(screenChange){
+			clearButtonCallbacks();
 			buttons.setBtnPressCallback(BTN_A, [](){
 				File file = SPIFFS.open(highscoresPath, "r");
 				JsonArray &hiscores = jb.parseArray(file);
@@ -1153,7 +1190,7 @@ void loop() {
 				}
 				hiscores.end();
 				Serial.println("HERE");
-				delay(5);
+				// delay(5);
 				gamestatus = "enterInitials";
 			});
 			buttons.setBtnPressCallback(BTN_B, [](){
@@ -1167,7 +1204,7 @@ void loop() {
 				}
 				hiscores.end();
 				Serial.println("HERE");
-				delay(5);
+				// delay(5);
 				gamestatus = "enterInitials";
 			});
 		}
@@ -1184,10 +1221,13 @@ void loop() {
 	if(gamestatus == "paused")
 	{
 		if(screenChange){
+			clearButtonCallbacks();
 			buttons.setBtnPressCallback(BTN_A, [](){
 				gamestatus = "running";
+				setButtonsCallbacks();
 			});
 			buttons.setBtnPressCallback(BTN_B, [](){
+				Serial.println("going to title");
 				gamestatus = "title";
 			});
 		}
@@ -1208,7 +1248,7 @@ void loop() {
 		}
 		eraseData();
 	}
-	if(gamestatus == "displayData")
+	if(gamestatus == "dataDisplay")
 	{
 		if(screenChange){
 			dataDisplaySetup();
