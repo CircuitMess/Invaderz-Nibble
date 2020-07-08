@@ -20,7 +20,7 @@ constexpr int STAR_SPEED_MIN = 1;          // Minimum movement in pixels per upd
 constexpr int STAR_SPEED_MAX = 2;         // Maximum movement in pixels per update. (value is inclusive)
 constexpr int STAR_COLOR = 0xffff;  
 
-class SpaceInvaders: public Context, public UpdateListener{
+class SpaceInvaders: public Game, public UpdateListener{
 public:
 	SpaceInvaders(Display& display);
 	void draw() override;
@@ -82,7 +82,7 @@ private:
 	String previous = "";
 	uint32_t hiscoreMillis = millis();
 	bool hiscoreBlink = 0;
-	const char *highscoresPath = "/Invaderz/hiscores.sav";
+	char *highscoresPath;
 	bool savePresent = 0;
 	uint16_t tempScore = 0;
 	String name = "";

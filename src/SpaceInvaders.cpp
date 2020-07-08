@@ -3,12 +3,23 @@
 
 SpaceInvaders* SpaceInvaders::instance = nullptr;
 SpaceInvaders::SpaceInvaders(Display& display) :
-		Context(display), baseSprite(display.getBaseSprite()),
+		Game(display, "Invaderz", nullptr, "Classic Space Invaders remake."), baseSprite(display.getBaseSprite()),
 		baseImage(&screen, screen.getWidth(), screen.getHeight()),
 		buttons(Input::getInstance())
 {
 	instance = this;
 	addSprite(&baseImage);
+	highscoresPath = (char*)calloc(30, 1);
+	strncpy(highscoresPath, "/", 30);
+	if(getTitle()){
+		strncat(highscoresPath, getTitle(), 30);
+	}
+	else
+	{
+		strncat(highscoresPath, "game", 30);
+	}
+	
+	strncat(highscoresPath, ".sav", 30);
 }
 void SpaceInvaders::start()
 {
@@ -39,6 +50,7 @@ void SpaceInvaders::stop()
 	UpdateManager::removeListener(this);
 	clearButtonCallbacks();
 	jb.clear();
+	delete[] highscoresPath;
 }
 void SpaceInvaders::draw(){
 	if (gamestatus == "title") {
@@ -183,6 +195,7 @@ void SpaceInvaders::update(uint)
 			});
 			buttons->setBtnPressCallback(BTN_B, [](){
 				Serial.println("going to title");
+				Serial.println(instance->highscoresPath);
 				instance->gamestatus = "title";
 			});
 		}
