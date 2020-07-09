@@ -122,6 +122,7 @@ void SpaceInvaders::draw(){
 	{
 		enterInitials();
 	}
+	screen.commit();
 }
 void SpaceInvaders::update(uint)
 {
