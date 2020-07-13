@@ -27,24 +27,21 @@ public:
 	void start() override;
 	void update(uint) override;
 	void stop() override;
-
 private:
 	Sprite *baseSprite;
-	Image baseImage;
 	Input *buttons;
-	StaticJsonBuffer<8000> jb;
+	StaticJsonDocument<8000> jb;
 	String gamestatus;
 	int score;
 	int lives;
 	int gamelevel;
 	int shipx;
-	int invaderx[55];
-	int invadery[55];
-	int invaders[55];
-	int invaderframe[55];
+	int invaderx[30];
+	int invadery[30];
+	int invaders[30];
+	int invaderframe[30];
 	int invaderanz;
 	int invaderctr;
-	int invadersound;
 	int checkdir;
 	int nextxdir;
 	int nextydir;
@@ -71,7 +68,6 @@ private:
 	int saucers;
 	int saucertimer;
 	int saucerwait;
-	int delayBip;
 	uint32_t blinkMillis = millis();
 	bool blinkState = 0;
 	unsigned long elapsedMillis = millis();
@@ -87,11 +83,13 @@ private:
 	uint16_t tempScore = 0;
 	String name = "";
 	uint8_t cursor = 0;
-	char key = NO_KEY;
 	Star stars[STAR_COUNT];
 	String prevGamestatus = gamestatus;
 	bool screenChange = 0;
 	static SpaceInvaders* instance;
+	Display* display;
+	const uint8_t invadersColumns = 6;
+	const uint8_t invadersRows = 5;
 
 	void starsSetup();
 	void drawBitmap(int16_t x, int16_t y, const byte *bitmap, uint16_t color, uint8_t scale);

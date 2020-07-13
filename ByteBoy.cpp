@@ -1,18 +1,8 @@
 #include "ByteBoy.hpp"
-Game::Game(Display &display, char* title, unsigned short* gameIcon, char* description) : 
-		Context(display), gameIcon(gameIcon), description(description), title(title)
+Game::Game(Display &display) : Context(display)
 {
 }
-
-const unsigned short* Game::getIcon()
+GameInfo Game::getGameInfo()
 {
-	return gameIcon;
-}
-const char* Game::getTitle()
-{
-	return title;
-}
-const char* Game::getDescription()
-{
-	return description;
+	return info;
 }

@@ -1,56 +1,59 @@
 #include "SpaceInvaders.h"
 #include "sprites.hpp"
-
+#include "icon.h"
 SpaceInvaders* SpaceInvaders::instance = nullptr;
+GameInfo Game::info = {"Invaderz", "Classic space invaders remake", icon};
 SpaceInvaders::SpaceInvaders(Display& display) :
-		Game(display, "Invaderz", nullptr, "Classic Space Invaders remake."), baseSprite(display.getBaseSprite()),
-		baseImage(&screen, screen.getWidth(), screen.getHeight()),
-		buttons(Input::getInstance())
+		Game(display), baseSprite(display.getBaseSprite()),
+		buttons(Input::getInstance()), display(&display)
 {
+	Serial.println("construcctor");
+	delay(5);
+	Serial.println(baseSprite->created() ? "created" : "not created");
 	instance = this;
-	addSprite(&baseImage);
 	highscoresPath = (char*)calloc(30, 1);
 	strncpy(highscoresPath, "/", 30);
-	if(getTitle()){
-		strncat(highscoresPath, getTitle(), 30);
+	if(info.title){
+		strncat(highscoresPath, info.title, 30);
 	}
 	else
 	{
 		strncat(highscoresPath, "game", 30);
 	}
-	
 	strncat(highscoresPath, ".sav", 30);
 }
 void SpaceInvaders::start()
 {
+	randomSeed(millis()*micros());
 	starsSetup();
+	prevGamestatus = "";
 	gamestatus = "title";
+	Serial.println(highscoresPath);
 	File file = SPIFFS.open(highscoresPath, "r");
-	JsonArray &hiscores = jb.parseArray(file);
+	deserializeJson(jb, file);
+	JsonArray hiscores = jb.to<JsonArray>();
 	file.close();
-	if(!SPIFFS.exists("/Invaderz"))
-		SPIFFS.mkdir("/Invaderz");
-	if(hiscores.success())
+	if(!hiscores.isNull())
 		savePresent = 1;
 	else
 	{
 		Serial.println("No save present");
-		JsonArray &hiscores = jb.createArray();
-		JsonObject &test = jb.createObject();
+		JsonArray hiscores = jb.as<JsonArray>();
 		File file = SPIFFS.open(highscoresPath, "w");
-		hiscores.prettyPrintTo(file);
+		serializeJson(hiscores, file);
 		file.close();
 	}
-	hiscores.prettyPrintTo(Serial);
+	serializeJsonPretty(hiscores, Serial);
 	Serial.println("saves ok");
+	draw();
 	UpdateManager::addListener(this);
 }
 void SpaceInvaders::stop()
 {
-	UpdateManager::removeListener(this);
 	clearButtonCallbacks();
 	jb.clear();
 	delete[] highscoresPath;
+	UpdateManager::removeListener(this);
 }
 void SpaceInvaders::draw(){
 	if (gamestatus == "title") {
@@ -122,7 +125,7 @@ void SpaceInvaders::draw(){
 	{
 		enterInitials();
 	}
-	screen.commit();
+	display->commit();
 }
 void SpaceInvaders::update(uint)
 {
@@ -158,9 +161,10 @@ void SpaceInvaders::update(uint)
 			clearButtonCallbacks();
 			buttons->setBtnPressCallback(BTN_A, [](){
 				File file = SPIFFS.open(instance->highscoresPath, "r");
-				JsonArray &hiscores = instance->jb.parseArray(file);
+				serializeJson(instance->jb, file);
+				JsonArray hiscores = instance->jb.to<JsonArray>();
 				file.close();
-				for (JsonObject& element : hiscores)
+				for (JsonObject element : hiscores)
 				{
 					if(element["Rank"] == 1)
 						instance->tempScore = element["Score"].as<int>();
@@ -172,9 +176,10 @@ void SpaceInvaders::update(uint)
 			});
 			buttons->setBtnPressCallback(BTN_B, [](){
 				File file = SPIFFS.open(instance->highscoresPath, "r");
-				JsonArray &hiscores = instance->jb.parseArray(file);
+				serializeJson(instance->jb, file);
+				JsonArray hiscores = instance->jb.to<JsonArray>();
 				file.close();
-				for (JsonObject& element : hiscores)
+				for (JsonObject element : hiscores)
 				{
 					if(element["Rank"] == 1)
 						instance->tempScore = element["Score"].as<int>();
@@ -257,40 +262,48 @@ void SpaceInvaders::newgame() {
 }
 //----------------------------------------------------------------------------
 void SpaceInvaders::newlevel() {
-	invaderanz = 30;
-	invaderctr = 29;
+	invaderanz = invadersRows*invadersColumns;
+	invaderctr = invadersRows*invadersColumns - 1;
 	invaderxr = 1;
 	invaderyr = 1;
 	checkdir = 0;
 	nextxdir = 4;
 	nextydir = 0;
 	yeahtimer = 0;
-	delayBip = 0;
 	invadershottimer = 120;
 	saucertimer = 480;
 	int down = gamelevel;
 	if (gamelevel > 8) { down = 16*2; }
-	for (int i = 0; i < 6; i++) {
-		invaderx[i] = 10 + i * 8*2;
-		invaderx[i + 6] = 10 + i * 8*2;
-		invaderx[i + 12] = 10 + i * 8*2;
-		invaderx[i + 18] = 10 + i * 8*2;
-		invaderx[i + 24] = 10 + i * 8*2;
-		invadery[i] = 14 + down;
-		invadery[i + 6] = 13*2 + down;
-		invadery[i + 12] = 19*2 + down;
-		invadery[i + 18] = 25*2 + down;
-		invadery[i + 24] = 31*2 + down;
-		invaders[i] = 4;
-		invaders[i + 6] = 2;
-		invaders[i + 12] = 2;
-		invaders[i + 18] = 0;
-		invaders[i + 24] = 0;
+	for (int i = 0; i < invadersColumns*invadersRows; i++) {
+		invaderx[i] = 10 + i%invadersColumns * 16;
+		invadery[i] = 14 + 12*int(i/invadersColumns);
+		// invadery[i] = 14 + down;
+		// invadery[i + 6] = 13*2 + down;
+		// invadery[i + 12] = 19*2 + down;
+		// invadery[i + 18] = 25*2 + down;
+		// invadery[i + 24] = 31*2 + down;
+		switch (int(i/invadersColumns))
+		{
+		case 0:
+			invaders[i] = 4;
+			break;
+		case 1:
+			invaders[i] = 2;
+			break;
+		case 2:
+			invaders[i] = 2;
+			break;
+		case 3:
+			invaders[i] = 0;
+			break;
+		case 4:
+			invaders[i] = 0;
+			break;
+
+		default:
+			break;
+		}
 		invaderframe[i] = 0;
-		invaderframe[i + 6] = 0;
-		invaderframe[i + 12] = 0;
-		invaderframe[i + 18] = 0;
-		invaderframe[i + 24] = 0;
 		yield();
 	}
 	for (int i = 0; i < 4; i++) {
@@ -399,26 +412,26 @@ void SpaceInvaders::invaderlogic() {
 	// increment invader counter
 	if (invaderanz > 0) {
 		checkdir = 0;
-		do {
+		if(invaders[invaderctr] == -1)
+		{
+			while (invaders[invaderctr] == -1){
+				invaderctr++;
+				if (invaderctr >= 30) {
+					invaderctr = 0;
+					checkdir = 1;
+				}
+				yield();
+			}
+		}
+		else
+		{
 			invaderctr++;
-			if (invaderctr > 30) {
+			if (invaderctr >= 30) {
 				invaderctr = 0;
 				checkdir = 1;
-				invadersound = ++invadersound % 4;
-				if (delayBip <= 0) {
-					if (invaderanz < 6) {
-						delayBip = 5;
-					}
-					else if (invaderanz < 11) {
-						delayBip = 3;
-					} if (invaderanz < 21) {
-						delayBip = 2;
-					}
-				}
-				else { delayBip--; }
 			}
-			yield();
-		} while (invaders[invaderctr] == -1);
+		}
+		
 
 		// change direction?
 		if (checkdir == 1) {
@@ -454,7 +467,7 @@ void SpaceInvaders::invaderlogic() {
 			nextxdir = -4;
 			nextydir = 4;
 		}
-		if (invaderx[invaderctr] < 4 && invaderxr < 0) {
+		if (invaderx[invaderctr] < 6 && invaderxr < 0) {
 			nextxdir = 4;
 			nextydir = 4;
 		}
@@ -476,8 +489,16 @@ void SpaceInvaders::invaderlogic() {
 			int flag = 0;
 			for (int u = 0; u < 4; u++) {
 				if (flag == 0 && invadershotx[u] == -1) {
-					invadershotx[u] = invaderx[invaderctr] + 2;
-					invadershoty[u] = invadery[invaderctr];
+					uint8_t x = random(0, invaderanz);
+					for(int8_t i = x; i >= 0; i--)
+					{
+						if(invaders[i] == -1)
+						{
+							x++;
+						}
+					}
+					invadershotx[u] = invaderx[x] + 2;
+					invadershoty[u] = invadery[x];
 					flag = 1;
 				}
 			}
@@ -537,8 +558,8 @@ void SpaceInvaders::drawInvaderShot() {
 
 			// check collission: invadershot & bunker
 			for (int u = 0; u < 4; u++) {
-				checkl = 22 + u * 36;
-				checkr = 22 + u * 36 + 14;
+				checkl = 12 + u * 30;
+				checkr = 12 + u * 30 + 14;
 				checkt = 90;
 				checkb = 100;
 				if (bunkers[u] != -1 && invadershotx[i] + 1 >= checkl && invadershotx[i] <= checkr && invadershoty[i] + 3 >= checkt && invadershoty[i] <= checkb) {
@@ -685,9 +706,9 @@ void SpaceInvaders::eraseDataSetup()
 
 	});
 	buttons->setBtnPressCallback(BTN_A, [](){
-		JsonArray &empty = instance->jb.createArray();
+		JsonArray empty = instance->jb.to<JsonArray>();
 		File file = SPIFFS.open(instance->highscoresPath, "w");
-		empty.prettyPrintTo(file);
+		serializeJson(empty, file);
 		file.close();
 		instance->gamestatus = "title";
 
@@ -729,13 +750,14 @@ void SpaceInvaders::dataDisplaySetup()
 {
 	jb.clear();
 	File file = SPIFFS.open(highscoresPath, "r");
-	JsonArray &hiscores = jb.parseArray(file);
+	serializeJson(instance->jb, file);
+	JsonArray hiscores = jb.to<JsonArray>();
 	file.close();
 	memset(scoreArray, 0, 6);
 	hiscoresSize = hiscores.size();
 	for(uint8_t i = 0; i < 6; i++)
 	{
-		for(JsonObject& element:hiscores)
+		for(JsonObject element:hiscores)
 		{
 			if(element["Rank"] == i)
 			{
@@ -980,9 +1002,11 @@ void SpaceInvaders::enterInitials() {
 	{
 		File file = SPIFFS.open(highscoresPath, "r");
 		jb.clear();
-		JsonArray &hiscores2 = jb.parseArray(file);
+		deserializeJson(jb, file);
+		JsonArray hiscores2 = jb.as<JsonArray>();
 		file.close();
-		JsonObject &newHiscore = jb.createObject();
+		DynamicJsonDocument doc = DynamicJsonDocument(1024);
+		JsonObject newHiscore = doc.to<JsonObject>();
 		newHiscore["Name"] = name;
 		newHiscore["Score"] = score;
 		newHiscore["Rank"] = 1;
@@ -1006,11 +1030,12 @@ void SpaceInvaders::enterInitials() {
 					{
 						newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]);
 					}
-					JsonObject &tempObject = jb.createObject();
+					DynamicJsonDocument docTemp = DynamicJsonDocument(1024);
+					JsonObject tempObject = docTemp.as<JsonObject>();
 					tempObject["Name"] = (const char *)(hiscores2[i]["Name"]);
 					tempObject["Score"] = (uint16_t)(hiscores2[i]["Score"]);
 					tempObject["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
-					tempObject.prettyPrintTo(Serial);
+					serializeJsonPretty(tempObject, Serial);
 					// delay(5);
 					hiscores2.remove(i);
 					hiscores2.add(tempObject);
@@ -1025,8 +1050,9 @@ void SpaceInvaders::enterInitials() {
 			}
 		}
 		hiscores2.add(newHiscore);
+		doc.clear();
 		file = SPIFFS.open(highscoresPath, "w");
-		hiscores2.prettyPrintTo(file);
+		serializeJson(hiscores2, file);
 		file.close();
 		gamestatus = "dataDisplay";
 	}
