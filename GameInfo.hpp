@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Display/Display.h>
 #include "../bitmaps/icon.hpp"
+#include "src/SpaceInvaders.h"
 
 class Context;
 struct GameInfo {
@@ -16,5 +17,5 @@ const GameInfo SnakeInfo {
 		"Invaderz",
 		"A remake of the classic space invaders.",
 		icon,
-		[](Display& display) -> Context* { return new Snake(display); }
+		[](Display& display) -> Context* { return new SpaceInvaders(display); }
 };
