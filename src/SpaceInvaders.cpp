@@ -1,8 +1,7 @@
 #include "SpaceInvaders.h"
 #include "sprites.hpp"
-#include "icon.h"
 SpaceInvaders* SpaceInvaders::instance = nullptr;
-GameInfo Game::info = {"Invaderz", "Classic space invaders remake", icon};
+GameInfo Game::info = {"Invaderz", "Classic space invaders remake", nullptr};
 SpaceInvaders::SpaceInvaders(Display& display) :
 		Game(display), baseSprite(display.getBaseSprite()),
 		buttons(Input::getInstance()), display(&display)
