@@ -11,7 +11,7 @@
 #include <gpio.h>
 #include <avr/pgmspace.h>
 #include <Support/Context.h>
-#include "../ByteBoy.hpp"
+#include "../Nibble.hpp"
 #include <UI/Image.h>
 
 constexpr int STAR_COUNT = 30;            // Number of stars on the screen. Arduino UNO maxes out around 250.
