@@ -1,10 +1,5 @@
 #ifndef GAME_INFO
 #define GAME_INFO
-#include <Arduino.h>
-#include <Display/Display.h>
-#include "../bitmaps/invaderz_icon.hpp"
-#include "src/SpaceInvaders.h"
-
 class Context;
 struct GameInfo {
 	const char* title;
@@ -13,6 +8,11 @@ struct GameInfo {
 	Context* (*launch)(Display& display);
 };
 #endif
+
+#include <Arduino.h>
+#include <Display/Display.h>
+#include "../bitmaps/invaderz_icon.hpp"
+#include "src/SpaceInvaders.h"
 
 const GameInfo InvaderzInfo {
 		"Invaderz",
