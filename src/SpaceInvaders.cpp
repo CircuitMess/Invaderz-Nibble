@@ -19,6 +19,8 @@ SpaceInvaders::SpaceInvaders(Display& display) :
 	// 	strncat(highscoresPath, "game", 30);
 	// }
 	// strncat(highscoresPath, ".sav", 30);
+
+	gamestatus = "title";
 }
 void SpaceInvaders::start()
 {
@@ -123,7 +125,6 @@ void SpaceInvaders::draw(){
 	{
 		enterInitials();
 	}
-	display->commit();
 }
 void SpaceInvaders::update(uint)
 {
@@ -223,6 +224,7 @@ void SpaceInvaders::update(uint)
 		}
 	}
 	draw();
+	display->commit();
 }
 void SpaceInvaders::starsSetup()
 {
