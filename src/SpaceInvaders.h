@@ -20,7 +20,7 @@ constexpr int STAR_SPEED_MIN = 1;          // Minimum movement in pixels per upd
 constexpr int STAR_SPEED_MAX = 2;         // Maximum movement in pixels per update. (value is inclusive)
 constexpr int STAR_COLOR = 0xffff;  
 
-class SpaceInvaders: public Game, public UpdateListener{
+class SpaceInvaders: public Context, public UpdateListener{
 public:
 	SpaceInvaders(Display& display);
 	void draw() override;
@@ -30,7 +30,7 @@ public:
 private:
 	Sprite *baseSprite;
 	Input *buttons;
-	StaticJsonDocument<8000> jb;
+	// StaticJsonDocument<8000> jb;
 	String gamestatus;
 	int score;
 	int lives;

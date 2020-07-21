@@ -1,7 +1,6 @@
 #include "SpaceInvaders.h"
 #include "sprites.hpp"
 SpaceInvaders* SpaceInvaders::instance = nullptr;
-GameInfo Game::info = {"Invaderz", "Classic space invaders remake", nullptr};
 SpaceInvaders::SpaceInvaders(Display& display) :
 		Game(display), baseSprite(display.getBaseSprite()),
 		buttons(Input::getInstance()), display(&display)
@@ -10,16 +9,16 @@ SpaceInvaders::SpaceInvaders(Display& display) :
 	delay(5);
 	Serial.println(baseSprite->created() ? "created" : "not created");
 	instance = this;
-	highscoresPath = (char*)calloc(30, 1);
-	strncpy(highscoresPath, "/", 30);
-	if(info.title){
-		strncat(highscoresPath, info.title, 30);
-	}
-	else
-	{
-		strncat(highscoresPath, "game", 30);
-	}
-	strncat(highscoresPath, ".sav", 30);
+	// highscoresPath = (char*)calloc(30, 1);
+	// strncpy(highscoresPath, "/", 30);
+	// if(info.title){
+	// 	strncat(highscoresPath, info.title, 30);
+	// }
+	// else
+	// {
+	// 	strncat(highscoresPath, "game", 30);
+	// }
+	// strncat(highscoresPath, ".sav", 30);
 }
 void SpaceInvaders::start()
 {
@@ -27,31 +26,31 @@ void SpaceInvaders::start()
 	starsSetup();
 	prevGamestatus = "";
 	gamestatus = "title";
-	Serial.println(highscoresPath);
-	File file = SPIFFS.open(highscoresPath, "r");
-	deserializeJson(jb, file);
-	JsonArray hiscores = jb.to<JsonArray>();
-	file.close();
-	if(!hiscores.isNull())
-		savePresent = 1;
-	else
-	{
-		Serial.println("No save present");
-		JsonArray hiscores = jb.as<JsonArray>();
-		File file = SPIFFS.open(highscoresPath, "w");
-		serializeJson(hiscores, file);
-		file.close();
-	}
-	serializeJsonPretty(hiscores, Serial);
-	Serial.println("saves ok");
+	// Serial.println(highscoresPath);
+	// File file = SPIFFS.open(highscoresPath, "r");
+	// deserializeJson(jb, file);
+	// JsonArray hiscores = jb.to<JsonArray>();
+	// file.close();
+	// if(!hiscores.isNull())
+	// 	savePresent = 1;
+	// else
+	// {
+	// 	Serial.println("No save present");
+	// 	JsonArray hiscores = jb.as<JsonArray>();
+	// 	File file = SPIFFS.open(highscoresPath, "w");
+	// 	serializeJson(hiscores, file);
+	// 	file.close();
+	// }
+	// serializeJsonPretty(hiscores, Serial);
+	// Serial.println("saves ok");
 	draw();
 	UpdateManager::addListener(this);
 }
 void SpaceInvaders::stop()
 {
 	clearButtonCallbacks();
-	jb.clear();
-	delete[] highscoresPath;
+	// jb.clear();
+	// delete[] highscoresPath;
 	UpdateManager::removeListener(this);
 }
 void SpaceInvaders::draw(){
@@ -159,32 +158,32 @@ void SpaceInvaders::update(uint)
 		if(screenChange){
 			clearButtonCallbacks();
 			buttons->setBtnPressCallback(BTN_A, [](){
-				File file = SPIFFS.open(instance->highscoresPath, "r");
-				serializeJson(instance->jb, file);
-				JsonArray hiscores = instance->jb.to<JsonArray>();
-				file.close();
-				for (JsonObject element : hiscores)
-				{
-					if(element["Rank"] == 1)
-						instance->tempScore = element["Score"].as<int>();
-				}
-				hiscores.end();
+				// File file = SPIFFS.open(instance->highscoresPath, "r");
+				// serializeJson(instance->jb, file);
+				// JsonArray hiscores = instance->jb.to<JsonArray>();
+				// file.close();
+				// for (JsonObject element : hiscores)
+				// {
+				// 	if(element["Rank"] == 1)
+				// 		instance->tempScore = element["Score"].as<int>();
+				// }
+				// hiscores.end();
 				Serial.println("HERE");
 				// delay(5);
-				instance->gamestatus = "enterInitials";
+				instance->gamestatus = "title";
 			});
 			buttons->setBtnPressCallback(BTN_B, [](){
-				File file = SPIFFS.open(instance->highscoresPath, "r");
-				serializeJson(instance->jb, file);
-				JsonArray hiscores = instance->jb.to<JsonArray>();
-				file.close();
-				for (JsonObject element : hiscores)
-				{
-					if(element["Rank"] == 1)
-						instance->tempScore = element["Score"].as<int>();
-				}
-				hiscores.end();
-				Serial.println("HERE");
+				// File file = SPIFFS.open(instance->highscoresPath, "r");
+				// serializeJson(instance->jb, file);
+				// JsonArray hiscores = instance->jb.to<JsonArray>();
+				// file.close();
+				// for (JsonObject element : hiscores)
+				// {
+				// 	if(element["Rank"] == 1)
+				// 		instance->tempScore = element["Score"].as<int>();
+				// }
+				// hiscores.end();
+				// Serial.println("HERE");
 				// delay(5);
 				instance->gamestatus = "enterInitials";
 			});
@@ -705,10 +704,10 @@ void SpaceInvaders::eraseDataSetup()
 
 	});
 	buttons->setBtnPressCallback(BTN_A, [](){
-		JsonArray empty = instance->jb.to<JsonArray>();
-		File file = SPIFFS.open(instance->highscoresPath, "w");
-		serializeJson(empty, file);
-		file.close();
+		// JsonArray empty = instance->jb.to<JsonArray>();
+		// File file = SPIFFS.open(instance->highscoresPath, "w");
+		// serializeJson(empty, file);
+		// file.close();
 		instance->gamestatus = "title";
 
 	});
@@ -747,25 +746,25 @@ void SpaceInvaders::eraseData()
 
 void SpaceInvaders::dataDisplaySetup()
 {
-	jb.clear();
-	File file = SPIFFS.open(highscoresPath, "r");
-	serializeJson(instance->jb, file);
-	JsonArray hiscores = jb.to<JsonArray>();
-	file.close();
-	memset(scoreArray, 0, 6);
-	hiscoresSize = hiscores.size();
-	for(uint8_t i = 0; i < 6; i++)
-	{
-		for(JsonObject element:hiscores)
-		{
-			if(element["Rank"] == i)
-			{
-				strncpy(nameArray[i], element["Name"], 4);
-				scoreArray[i] = element["Score"];
-			}
-			yield();
-		}
-	}
+	// jb.clear();
+	// File file = SPIFFS.open(highscoresPath, "r");
+	// serializeJson(instance->jb, file);
+	// JsonArray hiscores = jb.to<JsonArray>();
+	// file.close();
+	// memset(scoreArray, 0, 6);
+	// hiscoresSize = hiscores.size();
+	// for(uint8_t i = 0; i < 6; i++)
+	// {
+	// 	for(JsonObject element:hiscores)
+	// 	{
+	// 		if(element["Rank"] == i)
+	// 		{
+	// 			strncpy(nameArray[i], element["Name"], 4);
+	// 			scoreArray[i] = element["Score"];
+	// 		}
+	// 		yield();
+	// 	}
+	// }
 	clearButtonCallbacks();
 	buttons->setBtnPressCallback(BTN_A, [](){
 		instance->gamestatus = "title";
@@ -786,14 +785,14 @@ void SpaceInvaders::dataDisplay()
 	baseSprite->setTextColor(TFT_RED);
 	baseSprite->printCenter("HIGHSCORES");
 	baseSprite->setCursor(3, 110);
-	for (int i = 1; i < 6;i++)
-	{
-		baseSprite->setCursor(6, i * 20);
-		if(i <= hiscoresSize)
-			baseSprite->printf("%d.   %.3s    %04d", i, nameArray[i], scoreArray[i]);
-		else
-			baseSprite->printf("%d.    ---   ----", i);
-	}
+	// for (int i = 1; i < 6;i++)
+	// {
+	// 	baseSprite->setCursor(6, i * 20);
+	// 	if(i <= hiscoresSize)
+	// 		baseSprite->printf("%d.   %.3s    %04d", i, nameArray[i], scoreArray[i]);
+	// 	else
+	// 		baseSprite->printf("%d.    ---   ----", i);
+	// }
 	baseSprite->setCursor(2, 115);
 	baseSprite->print("Erase");
 }
@@ -876,7 +875,7 @@ void SpaceInvaders::titleSetup()
 				instance->gamestatus = "newgame";
 				break;
 			case 1:
-				instance->gamestatus = "dataDisplay";
+				// instance->gamestatus = "dataDisplay";
 				break;
 			case 2:
 				instance->pop();
@@ -999,60 +998,60 @@ void SpaceInvaders::enterInitials() {
 
 	if(charCursor >= 3)
 	{
-		File file = SPIFFS.open(highscoresPath, "r");
-		jb.clear();
-		deserializeJson(jb, file);
-		JsonArray hiscores2 = jb.as<JsonArray>();
-		file.close();
-		DynamicJsonDocument doc = DynamicJsonDocument(1024);
-		JsonObject newHiscore = doc.to<JsonObject>();
-		newHiscore["Name"] = name;
-		newHiscore["Score"] = score;
-		newHiscore["Rank"] = 1;
+		// File file = SPIFFS.open(highscoresPath, "r");
+		// jb.clear();
+		// deserializeJson(jb, file);
+		// JsonArray hiscores2 = jb.as<JsonArray>();
+		// file.close();
+		// DynamicJsonDocument doc = DynamicJsonDocument(1024);
+		// JsonObject newHiscore = doc.to<JsonObject>();
+		// newHiscore["Name"] = name;
+		// newHiscore["Score"] = score;
+		// newHiscore["Rank"] = 1;
 
-		if(savePresent && hiscores2.size() > 0)
-		{
-			newHiscore["Rank"] = 999;
-			// Serial.println(hiscores2.size());
-			uint16_t tempSize = hiscores2.size();
-			for (int16_t i = 0; i < tempSize;i++)//searching for a place in the leaderboard for our new score
-			{
-				Serial.printf("i: %d\n", i);
-				Serial.println((uint16_t)(hiscores2[i]["Rank"]));
-				Serial.println((uint16_t)(hiscores2[i]["Score"]));
-				delay(5);
-				if(score >= (uint16_t)(hiscores2[i]["Score"]))
-				{
-					Serial.println("ENTERED");
-					delay(5);
-					if((uint16_t)(newHiscore["Rank"]) >  (uint16_t)(hiscores2[i]["Rank"]))
-					{
-						newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]);
-					}
-					DynamicJsonDocument docTemp = DynamicJsonDocument(1024);
-					JsonObject tempObject = docTemp.as<JsonObject>();
-					tempObject["Name"] = (const char *)(hiscores2[i]["Name"]);
-					tempObject["Score"] = (uint16_t)(hiscores2[i]["Score"]);
-					tempObject["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
-					serializeJsonPretty(tempObject, Serial);
-					// delay(5);
-					hiscores2.remove(i);
-					hiscores2.add(tempObject);
-					tempSize--;
-					i--;
-				}
-				else
-				{
-					if(newHiscore["Rank"] <= (uint16_t)(hiscores2[i]["Rank"]) || newHiscore["Rank"] == 999)
-						newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
-				}
-			}
-		}
-		hiscores2.add(newHiscore);
-		doc.clear();
-		file = SPIFFS.open(highscoresPath, "w");
-		serializeJson(hiscores2, file);
-		file.close();
+		// if(savePresent && hiscores2.size() > 0)
+		// {
+		// 	newHiscore["Rank"] = 999;
+		// 	// Serial.println(hiscores2.size());
+		// 	uint16_t tempSize = hiscores2.size();
+		// 	for (int16_t i = 0; i < tempSize;i++)//searching for a place in the leaderboard for our new score
+		// 	{
+		// 		Serial.printf("i: %d\n", i);
+		// 		Serial.println((uint16_t)(hiscores2[i]["Rank"]));
+		// 		Serial.println((uint16_t)(hiscores2[i]["Score"]));
+		// 		delay(5);
+		// 		if(score >= (uint16_t)(hiscores2[i]["Score"]))
+		// 		{
+		// 			Serial.println("ENTERED");
+		// 			delay(5);
+		// 			if((uint16_t)(newHiscore["Rank"]) >  (uint16_t)(hiscores2[i]["Rank"]))
+		// 			{
+		// 				newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]);
+		// 			}
+		// 			DynamicJsonDocument docTemp = DynamicJsonDocument(1024);
+		// 			JsonObject tempObject = docTemp.as<JsonObject>();
+		// 			tempObject["Name"] = (const char *)(hiscores2[i]["Name"]);
+		// 			tempObject["Score"] = (uint16_t)(hiscores2[i]["Score"]);
+		// 			tempObject["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
+		// 			serializeJsonPretty(tempObject, Serial);
+		// 			// delay(5);
+		// 			hiscores2.remove(i);
+		// 			hiscores2.add(tempObject);
+		// 			tempSize--;
+		// 			i--;
+		// 		}
+		// 		else
+		// 		{
+		// 			if(newHiscore["Rank"] <= (uint16_t)(hiscores2[i]["Rank"]) || newHiscore["Rank"] == 999)
+		// 				newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
+		// 		}
+		// 	}
+		// }
+		// hiscores2.add(newHiscore);
+		// doc.clear();
+		// file = SPIFFS.open(highscoresPath, "w");
+		// serializeJson(hiscores2, file);
+		// file.close();
 		gamestatus = "dataDisplay";
 	}
 }

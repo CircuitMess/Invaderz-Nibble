@@ -13,7 +13,8 @@ struct GameInfo {
 	Context* (*launch)(Display& display);
 };
 #endif
-const GameInfo SnakeInfo {
+
+const GameInfo InvaderzInfo {
 		"Invaderz",
 		"A remake of the classic space invaders.",
 		icon,
