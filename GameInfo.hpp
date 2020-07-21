@@ -2,7 +2,7 @@
 #define GAME_INFO
 #include <Arduino.h>
 #include <Display/Display.h>
-#include "../bitmaps/icon.hpp"
+#include "../bitmaps/invaderz_icon.hpp"
 #include "src/SpaceInvaders.h"
 
 class Context;
@@ -17,6 +17,6 @@ struct GameInfo {
 const GameInfo InvaderzInfo {
 		"Invaderz",
 		"A remake of the classic space invaders.",
-		icon,
+		invaderz_icon,
 		[](Display& display) -> Context* { return new SpaceInvaders(display); }
 };

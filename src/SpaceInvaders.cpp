@@ -2,7 +2,7 @@
 #include "sprites.hpp"
 SpaceInvaders* SpaceInvaders::instance = nullptr;
 SpaceInvaders::SpaceInvaders(Display& display) :
-		Game(display), baseSprite(display.getBaseSprite()),
+		Context(display), baseSprite(display.getBaseSprite()),
 		buttons(Input::getInstance()), display(&display)
 {
 	Serial.println("construcctor");
@@ -314,8 +314,8 @@ void SpaceInvaders::newlevel() {
 //----------------------------------------------------------------------------
 void SpaceInvaders::showscore() {
 	if (infoshow == 1 && saucers == -1) {
-		if (lives > 1) { drawBitmap(0, 0, playership[0], TFT_WHITE, 2); }
-		if (lives > 2) { drawBitmap(18, 0, playership[0], TFT_WHITE, 2); }
+		if (lives > 1) { drawBitmap(0, 0, invaderz_playership[0], TFT_WHITE, 2); }
+		if (lives > 2) { drawBitmap(18, 0, invaderz_playership[0], TFT_WHITE, 2); }
 		baseSprite->cursor_x= 84 - 4 * (score > 9) - 4 * (score > 99) - 4 * (score > 999);
 		baseSprite->cursor_y = 10;
 		baseSprite->print(score);
@@ -386,10 +386,10 @@ void SpaceInvaders::setButtonsCallbacks() {
 //----------------------------------------------------------------------------
 void SpaceInvaders::drawplayership() {
 	if (deadcounter == -1) {
-		drawBitmap(shipx, 110, playership[0], TFT_WHITE, 2);
+		drawBitmap(shipx, 110, invaderz_playership[0], TFT_WHITE, 2);
 	}
 	else {
-		drawBitmap(shipx, 110, playership[1 + invadershotframe], TFT_YELLOW, 2);
+		drawBitmap(shipx, 110, invaderz_playership[1 + invadershotframe], TFT_YELLOW, 2);
 		handledeath();
 	}
 }
@@ -508,10 +508,10 @@ void SpaceInvaders::drawinvaders() {
 	infoshow = 1;
 	for (int i = 0; i < 30; i++) {
 		if (invaders[i] != -1) {
-			if (invaders[i] == 0) drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_ORANGE, 2);
-			if (invaders[i] == 2) drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_PINK, 2);
-			if (invaders[i] == 4) drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_BLUE, 2);
-			if (invaders[i] == 6) drawBitmap(invaderx[i], invadery[i], invader[invaders[i] + invaderframe[i]], TFT_YELLOW, 2);
+			if (invaders[i] == 0) drawBitmap(invaderx[i], invadery[i], invaderz_invader[invaders[i] + invaderframe[i]], TFT_ORANGE, 2);
+			if (invaders[i] == 2) drawBitmap(invaderx[i], invadery[i], invaderz_invader[invaders[i] + invaderframe[i]], TFT_PINK, 2);
+			if (invaders[i] == 4) drawBitmap(invaderx[i], invadery[i], invaderz_invader[invaders[i] + invaderframe[i]], TFT_BLUE, 2);
+			if (invaders[i] == 6) drawBitmap(invaderx[i], invadery[i], invaderz_invader[invaders[i] + invaderframe[i]], TFT_YELLOW, 2);
 			
 			if (invadery[i] < 5) {
 				infoshow = 0;
@@ -552,7 +552,7 @@ void SpaceInvaders::drawInvaderShot() {
 	for (int i = 0; i < 4; i++) {
 		if (invadershotx[i] != -1) {
 			invadershoty[i] = invadershoty[i] + 1;
-			drawBitmap(invadershotx[i], invadershoty[i], bomb[invadershotframe], TFT_RED, 2);
+			drawBitmap(invadershotx[i], invadershoty[i], invaderz_bomb[invadershotframe], TFT_RED, 2);
 
 			// check collission: invadershot & bunker
 			for (int u = 0; u < 4; u++) {
@@ -620,7 +620,7 @@ void SpaceInvaders::drawbunkers() {
 		}
 
 		if (bunkers[i] != -1) {
-			drawBitmap(12 + i * 30, 90, bunker[bunkers[i]], TFT_GREEN, 2);
+			drawBitmap(12 + i * 30, 90, invaderz_bunker[bunkers[i]], TFT_GREEN, 2);
 		}
 		yield();
 	}
@@ -678,7 +678,7 @@ void SpaceInvaders::movesaucer() {
 //----------------------------------------------------------------------------
 void SpaceInvaders::drawsaucer() {
 	if (saucers != -1) {
-		drawBitmap(saucerx, 0, saucer[saucers], TFT_RED, 2);
+		drawBitmap(saucerx, 0, invaderz_saucer[saucers], TFT_RED, 2);
 		if (saucers == 1) {
 			saucerwait--;
 			if (saucerwait <= 0) {
@@ -824,7 +824,7 @@ void SpaceInvaders::showtitle() {
 		blinkState = !blinkState;
 	}
 	baseSprite->setTextColor(TFT_WHITE);
-	baseSprite->drawIcon(titleLogo, 4, 10, 60, 18, 2, TFT_BLACK);
+	baseSprite->drawIcon(invaderz_titleLogo, 4, 10, 60, 18, 2, TFT_BLACK);
 	baseSprite->setTextColor(TFT_RED);
 	baseSprite->setFreeFont(TT1);
 	baseSprite->setTextSize(2);
