@@ -11,7 +11,7 @@ struct GameInfo {
 
 #include <Arduino.h>
 #include <Display/Display.h>
-#include "../bitmaps/invaderz_icon.hpp"
+#include "bitmaps/invaderz_icon.hpp"
 #include "src/SpaceInvaders.h"
 
 const GameInfo InvaderzInfo {
