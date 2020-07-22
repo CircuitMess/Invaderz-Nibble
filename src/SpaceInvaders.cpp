@@ -1,7 +1,7 @@
 #include "SpaceInvaders.h"
 #include "sprites.hpp"
-SpaceInvaders* SpaceInvaders::instance = nullptr;
-SpaceInvaders::SpaceInvaders(Display& display) :
+SpaceInvaders::SpaceInvaders* SpaceInvaders::SpaceInvaders::instance = nullptr;
+SpaceInvaders::SpaceInvaders::SpaceInvaders(Display& display) :
 		Context(display), baseSprite(display.getBaseSprite()),
 		buttons(Input::getInstance()), display(&display)
 {
@@ -22,7 +22,7 @@ SpaceInvaders::SpaceInvaders(Display& display) :
 
 	gamestatus = "title";
 }
-void SpaceInvaders::start()
+void SpaceInvaders::SpaceInvaders::start()
 {
 	randomSeed(millis()*micros());
 	starsSetup();
@@ -48,14 +48,14 @@ void SpaceInvaders::start()
 	draw();
 	UpdateManager::addListener(this);
 }
-void SpaceInvaders::stop()
+void SpaceInvaders::SpaceInvaders::stop()
 {
 	clearButtonCallbacks();
 	// jb.clear();
 	// delete[] highscoresPath;
 	UpdateManager::removeListener(this);
 }
-void SpaceInvaders::draw(){
+void SpaceInvaders::SpaceInvaders::draw(){
 	if (gamestatus == "title") {
 		showtitle();
 	}
@@ -126,7 +126,7 @@ void SpaceInvaders::draw(){
 		enterInitials();
 	}
 }
-void SpaceInvaders::update(uint)
+void SpaceInvaders::SpaceInvaders::update(uint)
 {
 	if(gamestatus != prevGamestatus)
 	{
@@ -226,7 +226,7 @@ void SpaceInvaders::update(uint)
 	draw();
 	display->commit();
 }
-void SpaceInvaders::starsSetup()
+void SpaceInvaders::SpaceInvaders::starsSetup()
 {
 	// Loop through each star.
 	for(int i = 0; i < STAR_COUNT; i++)
@@ -235,7 +235,7 @@ void SpaceInvaders::starsSetup()
 		stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
 	}
 } 
-void SpaceInvaders::drawBitmap(int16_t x, int16_t y, const byte *bitmap, uint16_t color, uint8_t scale) {
+void SpaceInvaders::SpaceInvaders::drawBitmap(int16_t x, int16_t y, const byte *bitmap, uint16_t color, uint8_t scale) {
 	uint16_t w = *(bitmap++);
 	uint16_t h = *(bitmap++);
 	baseSprite->drawMonochromeIcon(bitmap, x, y, w, h, scale, color);
@@ -243,7 +243,7 @@ void SpaceInvaders::drawBitmap(int16_t x, int16_t y, const byte *bitmap, uint16_
 
 //ported nonstandard
 //----------------------------------------------------------------------------
-void SpaceInvaders::newgame() {
+void SpaceInvaders::SpaceInvaders::newgame() {
 	score = 0;
 	lives = 3;
 	gamelevel = 0;
@@ -261,7 +261,7 @@ void SpaceInvaders::newgame() {
 	setButtonsCallbacks();
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::newlevel() {
+void SpaceInvaders::SpaceInvaders::newlevel() {
 	invaderanz = invadersRows*invadersColumns;
 	invaderctr = invadersRows*invadersColumns - 1;
 	invaderxr = 1;
@@ -314,7 +314,7 @@ void SpaceInvaders::newlevel() {
 	gamestatus = "running";
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::showscore() {
+void SpaceInvaders::SpaceInvaders::showscore() {
 	if (infoshow == 1 && saucers == -1) {
 		if (lives > 1) { drawBitmap(0, 0, invaderz_playership[0], TFT_WHITE, 2); }
 		if (lives > 2) { drawBitmap(18, 0, invaderz_playership[0], TFT_WHITE, 2); }
@@ -327,7 +327,7 @@ void SpaceInvaders::showscore() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::nextlevelcheck() {
+void SpaceInvaders::SpaceInvaders::nextlevelcheck() {
 	// increment timer after all invaders killed
 	if (invaderanz == 0) {
 		yeahtimer++;
@@ -338,7 +338,7 @@ void SpaceInvaders::nextlevelcheck() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::handledeath() {
+void SpaceInvaders::SpaceInvaders::handledeath() {
 	deadcounter--;
 	if (deadcounter == 0) {
 		deadcounter = -1;
@@ -351,7 +351,7 @@ void SpaceInvaders::handledeath() {
 
 //ported specific
 //----------------------------------------------------------------------------
-void SpaceInvaders::clearButtonCallbacks()
+void SpaceInvaders::SpaceInvaders::clearButtonCallbacks()
 {
 	for(uint8_t i = 0; i < 7; i++)
 	{
@@ -361,7 +361,7 @@ void SpaceInvaders::clearButtonCallbacks()
 		buttons->setButtonHeldCallback(i, 0, nullptr);
 	}
 }
-void SpaceInvaders::setButtonsCallbacks() {
+void SpaceInvaders::SpaceInvaders::setButtonsCallbacks() {
 	clearButtonCallbacks();
 	buttons->setButtonHeldRepeatCallback(BTN_LEFT, 10, [](uint){
 		if (instance->shipx > 0 && instance->deadcounter == -1) {
@@ -386,7 +386,7 @@ void SpaceInvaders::setButtonsCallbacks() {
 	});
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::drawplayership() {
+void SpaceInvaders::SpaceInvaders::drawplayership() {
 	if (deadcounter == -1) {
 		drawBitmap(shipx, 110, invaderz_playership[0], TFT_WHITE, 2);
 	}
@@ -396,7 +396,7 @@ void SpaceInvaders::drawplayership() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::drawplayershot() {
+void SpaceInvaders::SpaceInvaders::drawplayershot() {
 	if (shotx != -1) {
 		shoty = shoty - 2;
 		baseSprite->drawLine(shotx, shoty, shotx, shoty + 6, TFT_YELLOW);
@@ -408,7 +408,7 @@ void SpaceInvaders::drawplayershot() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::invaderlogic() {
+void SpaceInvaders::SpaceInvaders::invaderlogic() {
 	// increment invader counter
 	if (invaderanz > 0) {
 		checkdir = 0;
@@ -506,7 +506,7 @@ void SpaceInvaders::invaderlogic() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::drawinvaders() {
+void SpaceInvaders::SpaceInvaders::drawinvaders() {
 	infoshow = 1;
 	for (int i = 0; i < 30; i++) {
 		if (invaders[i] != -1) {
@@ -543,7 +543,7 @@ void SpaceInvaders::drawinvaders() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::drawInvaderShot() {
+void SpaceInvaders::SpaceInvaders::drawInvaderShot() {
 	// handle invadershoot timer & framecounter
 	invadershottimer--;
 	if(invadershotframe == pastInvaderShotFrame)
@@ -608,7 +608,7 @@ void SpaceInvaders::drawInvaderShot() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::drawbunkers() {
+void SpaceInvaders::SpaceInvaders::drawbunkers() {
 	for (int i = 0; i < 4; i++) {
 		checkl = 12 + i * 30;
 		checkr = 12 + i * 30 + 14;
@@ -628,7 +628,7 @@ void SpaceInvaders::drawbunkers() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::saucerappears() {
+void SpaceInvaders::SpaceInvaders::saucerappears() {
 	saucertimer--;
 	if (saucertimer <= 0) {
 		saucertimer = 480;
@@ -653,7 +653,7 @@ void SpaceInvaders::saucerappears() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::movesaucer() {
+void SpaceInvaders::SpaceInvaders::movesaucer() {
 	if (saucers == 0) {
 		saucerx = saucerx + saucerdir;
 		if (saucerx <= 0 || saucerx >= 146) {
@@ -678,7 +678,7 @@ void SpaceInvaders::movesaucer() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::drawsaucer() {
+void SpaceInvaders::SpaceInvaders::drawsaucer() {
 	if (saucers != -1) {
 		drawBitmap(saucerx, 0, invaderz_saucer[saucers], TFT_RED, 2);
 		if (saucers == 1) {
@@ -696,7 +696,7 @@ void SpaceInvaders::drawsaucer() {
 
 
 //----------------------------------------------------------------------------
-void SpaceInvaders::eraseDataSetup()
+void SpaceInvaders::SpaceInvaders::eraseDataSetup()
 {
 	elapsedMillis = millis();
 	blinkState = 1;
@@ -714,7 +714,7 @@ void SpaceInvaders::eraseDataSetup()
 
 	});
 }
-void SpaceInvaders::eraseData()
+void SpaceInvaders::SpaceInvaders::eraseData()
 {
 	baseSprite->clear(TFT_BLACK);
 	baseSprite->setTextFont(2);
@@ -746,7 +746,7 @@ void SpaceInvaders::eraseData()
 	}
 }
 
-void SpaceInvaders::dataDisplaySetup()
+void SpaceInvaders::SpaceInvaders::dataDisplaySetup()
 {
 	// jb.clear();
 	// File file = SPIFFS.open(highscoresPath, "r");
@@ -778,7 +778,7 @@ void SpaceInvaders::dataDisplaySetup()
 		instance->gamestatus = "eraseData";
 	});
 }
-void SpaceInvaders::dataDisplay()
+void SpaceInvaders::SpaceInvaders::dataDisplay()
 {
 	baseSprite->clear(TFT_BLACK);
 	baseSprite->setCursor(32, -2);
@@ -798,7 +798,7 @@ void SpaceInvaders::dataDisplay()
 	baseSprite->setCursor(2, 115);
 	baseSprite->print("Erase");
 }
-void SpaceInvaders::showtitle() {
+void SpaceInvaders::SpaceInvaders::showtitle() {
 	baseSprite->clear(TFT_BLACK);
 	for(int i = 0; i < STAR_COUNT; i++)
 	{
@@ -845,7 +845,7 @@ void SpaceInvaders::showtitle() {
 	
 	
 }
-void SpaceInvaders::titleSetup()
+void SpaceInvaders::SpaceInvaders::titleSetup()
 {
 	cursor = 0;
 	blinkMillis = millis();
@@ -885,7 +885,7 @@ void SpaceInvaders::titleSetup()
 	});
 }
 
-void SpaceInvaders::enterInitialsSetup()
+void SpaceInvaders::SpaceInvaders::enterInitialsSetup()
 {
 	name = "AAA";
 	charCursor = 0;
@@ -953,7 +953,7 @@ void SpaceInvaders::enterInitialsSetup()
 		instance->elapsedMillis = millis();
 	});
 }
-void SpaceInvaders::enterInitials() {
+void SpaceInvaders::SpaceInvaders::enterInitials() {
   
     if (millis() - elapsedMillis >= 350) //cursor blinking routine
 	{

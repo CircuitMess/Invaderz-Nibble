@@ -18,5 +18,5 @@ const GameInfo InvaderzInfo {
 		"Invaderz",
 		"A remake of the classic space invaders.",
 		invaderz_icon,
-		[](Display& display) -> Context* { return new SpaceInvaders(display); }
+		[](Display& display) -> Context* { return new SpaceInvaders::SpaceInvaders(display); }
 };

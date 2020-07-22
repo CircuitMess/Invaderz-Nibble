@@ -26,7 +26,7 @@ SOFTWARE.
 /**
  * Randomizes the position and speed of the star.
  */
-void Star::randomize(int xMin, int xMax, int yMin, int yMax, int speedMin, int speedMax)
+void SpaceInvaders::Star::randomize(int xMin, int xMax, int yMin, int yMax, int speedMin, int speedMax)
 {
     // Generate random values for the star.
     x = random(xMin, xMax);
@@ -37,7 +37,7 @@ void Star::randomize(int xMin, int xMax, int yMin, int yMax, int speedMin, int s
 /**
  * Updates the position of the star.
  */
-void Star::update()
+void SpaceInvaders::Star::update()
 {
     // Update the star's Y position based on its speed.
     y += speed;
