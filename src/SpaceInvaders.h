@@ -105,9 +105,11 @@ private:
 	void setButtonsCallbacks();
 	void drawplayership();
 	void drawplayershot();
+	void updatePlayerShot();
 	void invaderlogic();
 	void drawinvaders();
 	void drawInvaderShot();
+	void updateInvaderShot();
 	void drawbunkers();
 	void saucerappears();
 	void movesaucer();

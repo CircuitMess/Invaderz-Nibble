@@ -20,14 +20,12 @@ SpaceInvaders::SpaceInvaders::SpaceInvaders(Display& display) :
 	// }
 	// strncat(highscoresPath, ".sav", 30);
 
+	randomSeed(millis()*micros());
+	starsSetup();
 	gamestatus = "title";
 }
 void SpaceInvaders::SpaceInvaders::start()
 {
-	randomSeed(millis()*micros());
-	starsSetup();
-	prevGamestatus = "";
-	gamestatus = "title";
 	// Serial.println(highscoresPath);
 	// File file = SPIFFS.open(highscoresPath, "r");
 	// deserializeJson(jb, file);
@@ -45,6 +43,7 @@ void SpaceInvaders::SpaceInvaders::start()
 	// }
 	// serializeJsonPretty(hiscores, Serial);
 	// Serial.println("saves ok");
+	prevGamestatus = "";
 	draw();
 	UpdateManager::addListener(this);
 }
@@ -65,19 +64,6 @@ void SpaceInvaders::SpaceInvaders::draw(){
 		{
 			// Remove the star from the screen by changing its pixel to the background color.
 			baseSprite->drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
-
-			// Update the position of the star.
-			stars[i].update();
-
-			// If the star's Y position is off the screen after the update.
-			if(stars[i].y >= baseSprite->height())
-			{
-				// Randomize its position.
-				stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
-				// Set its Y position back to the top.
-				stars[i].y = 0;
-			}
-
 			// Draw the star at its new coordinate.
 			baseSprite->fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
 			yield();
@@ -143,14 +129,52 @@ void SpaceInvaders::SpaceInvaders::update(uint)
 		{
 			titleSetup();
 		}
-		showtitle();
+		if(millis() - blinkMillis >= 250)
+		{
+			blinkMillis = millis();
+			blinkState = !blinkState;
+		}
+		for(int i = 0; i < STAR_COUNT; i++)
+		{
+			// Update the position of the star.
+			stars[i].update();
+
+			// If the star's Y position is off the screen after the update.
+			if(stars[i].y >= baseSprite->height())
+			{
+				// Randomize its position.
+				stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
+				// Set its Y position back to the top.
+				stars[i].y = 0;
+			}
+		}
 	}
 	if (gamestatus == "newgame") { newgame(); } // new game
 
 	if (gamestatus == "newlevel") { newlevel(); } // new level
 
 	if (gamestatus == "running") { // game running loop
+		if(screenChange)
+		{
+			setButtonsCallbacks();
+		}
+		for(int i = 0; i < STAR_COUNT; i++)
+		{
+			// Update the position of the star.
+			stars[i].update();
+
+			// If the star's Y position is off the screen after the update.
+			if(stars[i].y >= baseSprite->height())
+			{
+				// Randomize its position.
+				stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
+				// Set its Y position back to the top.
+				stars[i].y = 0;
+			}
+		}
 		invaderlogic(); // invader logic
+		updateInvaderShot();
+		updatePlayerShot();
 		nextlevelcheck(); // next level?
 		saucerappears(); // saucer appears?
 		movesaucer(); // move saucer
@@ -258,7 +282,6 @@ void SpaceInvaders::SpaceInvaders::newgame() {
 		invadershoty[i] = -1;
 	}
 	gamestatus = "newlevel";
-	setButtonsCallbacks();
 }
 //----------------------------------------------------------------------------
 void SpaceInvaders::SpaceInvaders::newlevel() {
@@ -398,9 +421,14 @@ void SpaceInvaders::SpaceInvaders::drawplayership() {
 //----------------------------------------------------------------------------
 void SpaceInvaders::SpaceInvaders::drawplayershot() {
 	if (shotx != -1) {
-		shoty = shoty - 2;
 		baseSprite->drawLine(shotx, shoty, shotx, shoty + 6, TFT_YELLOW);
 		baseSprite->drawLine(shotx+1, shoty, shotx+1, shoty + 6, TFT_YELLOW);
+	}
+}
+void SpaceInvaders::SpaceInvaders::updatePlayerShot()
+{
+	if (shotx != -1) {
+		shoty = shoty - 2;
 		if (shoty < 0) {
 			shotx = -1;
 			shoty = -1;
@@ -543,7 +571,16 @@ void SpaceInvaders::SpaceInvaders::drawinvaders() {
 	}
 }
 //----------------------------------------------------------------------------
-void SpaceInvaders::SpaceInvaders::drawInvaderShot() {
+void SpaceInvaders::SpaceInvaders::drawInvaderShot()
+{
+	for (int i = 0; i < 4; i++) {
+		if (invadershotx[i] != -1) {
+			drawBitmap(invadershotx[i], invadershoty[i], invaderz_bomb[invadershotframe], TFT_RED, 2);
+		}
+	}
+}
+
+void SpaceInvaders::SpaceInvaders::updateInvaderShot() {
 	// handle invadershoot timer & framecounter
 	invadershottimer--;
 	if(invadershotframe == pastInvaderShotFrame)
@@ -554,7 +591,6 @@ void SpaceInvaders::SpaceInvaders::drawInvaderShot() {
 	for (int i = 0; i < 4; i++) {
 		if (invadershotx[i] != -1) {
 			invadershoty[i] = invadershoty[i] + 1;
-			drawBitmap(invadershotx[i], invadershoty[i], invaderz_bomb[invadershotframe], TFT_RED, 2);
 
 			// check collission: invadershot & bunker
 			for (int u = 0; u < 4; u++) {
@@ -804,26 +840,8 @@ void SpaceInvaders::SpaceInvaders::showtitle() {
 	{
 		// Remove the star from the screen by changing its pixel to the background color.
 		baseSprite->drawPixel(stars[i].x, stars[i].y, BACKGROUND_COLOR);
-
-		// Update the position of the star.
-		stars[i].update();
-
-		// If the star's Y position is off the screen after the update.
-		if(stars[i].y >= baseSprite->height())
-		{
-			// Randomize its position.
-			stars[i].randomize(0, baseSprite->width(), 0, baseSprite->height(), STAR_SPEED_MIN, STAR_SPEED_MAX);
-			// Set its Y position back to the top.
-			stars[i].y = 0;
-		}
-
 		// Draw the star at its new coordinate.
 		baseSprite->fillRect(stars[i].x, stars[i].y, 2, 2, STAR_COLOR);
-	}
-	if(millis() - blinkMillis >= 250)
-	{
-		blinkMillis = millis();
-		blinkState = !blinkState;
 	}
 	baseSprite->setTextColor(TFT_WHITE);
 	baseSprite->drawIcon(invaderz_titleLogo, 4, 10, 60, 18, 2, TFT_BLACK);
@@ -841,9 +859,6 @@ void SpaceInvaders::SpaceInvaders::showtitle() {
 		baseSprite->drawRect(15, 67 + cursor * 20, 98, 16, TFT_RED);
 		baseSprite->drawRect(14, 66 + cursor * 20, 100, 18, TFT_RED);
 	}
-
-	
-	
 }
 void SpaceInvaders::SpaceInvaders::titleSetup()
 {
