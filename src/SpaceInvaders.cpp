@@ -1,5 +1,6 @@
 #include "SpaceInvaders.h"
 #include "sprites.hpp"
+#include <Audio/Piezo.h>
 SpaceInvaders::SpaceInvaders* SpaceInvaders::SpaceInvaders::instance = nullptr;
 SpaceInvaders::SpaceInvaders::SpaceInvaders(Display& display) :
 		Context(display), baseSprite(display.getBaseSprite()),
@@ -400,7 +401,7 @@ void SpaceInvaders::SpaceInvaders::setButtonsCallbacks() {
 		if (instance->shotx == -1 && instance->deadcounter == -1) {
 			instance->shotx = instance->shipx + 6;
 			instance->shoty = 106;
-			tone(BUZZ_PIN, 400, 50);
+			Piezo.tone(400, 50);
 		}
 	});
 	buttons->setBtnPressCallback(BTN_B, [](){
@@ -563,7 +564,7 @@ void SpaceInvaders::SpaceInvaders::drawinvaders() {
 			shotx = -1;
 			shoty = -1;
 			// destroyed->note(10, 0.05);
-			tone(BUZZ_PIN, 50, 50);
+			Piezo.tone(50, 50);
 
 			// invaderDestroyed->play();
 		}
@@ -616,7 +617,7 @@ void SpaceInvaders::SpaceInvaders::updateInvaderShot() {
 			if (deadcounter == -1 && invadershotx[i] + 1 >= checkl && invadershotx[i] <= checkr && invadershoty[i] + 3 >= checkt && invadershoty[i] <= checkb) {
 				deadcounter = 60;
 				// destroyed->note(10, 0.05);
-				tone(BUZZ_PIN, 50, 50);
+				Piezo.tone(50, 50);
 				// playerDestroyed->play();
 			}
 
