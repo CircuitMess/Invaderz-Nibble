@@ -1,6 +1,8 @@
 #include "SpaceInvaders.h"
 #include "sprites.hpp"
 #include <Audio/Piezo.h>
+#include "Highscore.h"
+
 SpaceInvaders::SpaceInvaders* SpaceInvaders::SpaceInvaders::instance = nullptr;
 SpaceInvaders::SpaceInvaders::SpaceInvaders(Display& display) :
 		Context(display), baseSprite(display.getBaseSprite()),
@@ -10,16 +12,6 @@ SpaceInvaders::SpaceInvaders::SpaceInvaders(Display& display) :
 	delay(5);
 	Serial.println(baseSprite->created() ? "created" : "not created");
 	instance = this;
-	// highscoresPath = (char*)calloc(30, 1);
-	// strncpy(highscoresPath, "/", 30);
-	// if(info.title){
-	// 	strncat(highscoresPath, info.title, 30);
-	// }
-	// else
-	// {
-	// 	strncat(highscoresPath, "game", 30);
-	// }
-	// strncat(highscoresPath, ".sav", 30);
 
 	randomSeed(millis()*micros());
 	starsSetup();
@@ -27,23 +19,7 @@ SpaceInvaders::SpaceInvaders::SpaceInvaders(Display& display) :
 }
 void SpaceInvaders::SpaceInvaders::start()
 {
-	// Serial.println(highscoresPath);
-	// File file = SPIFFS.open(highscoresPath, "r");
-	// deserializeJson(jb, file);
-	// JsonArray hiscores = jb.to<JsonArray>();
-	// file.close();
-	// if(!hiscores.isNull())
-	// 	savePresent = 1;
-	// else
-	// {
-	// 	Serial.println("No save present");
-	// 	JsonArray hiscores = jb.as<JsonArray>();
-	// 	File file = SPIFFS.open(highscoresPath, "w");
-	// 	serializeJson(hiscores, file);
-	// 	file.close();
-	// }
-	// serializeJsonPretty(hiscores, Serial);
-	// Serial.println("saves ok");
+	Highscore.begin();
 	prevGamestatus = "";
 	draw();
 	UpdateManager::addListener(this);
@@ -102,7 +78,7 @@ void SpaceInvaders::SpaceInvaders::draw(){
 	}
 	if(gamestatus == "eraseData")
 	{
-		eraseData();
+		eraseDataDraw();
 	}
 	if(gamestatus == "dataDisplay")
 	{
@@ -110,7 +86,7 @@ void SpaceInvaders::SpaceInvaders::draw(){
 	}
 	if(gamestatus == "enterInitials")
 	{
-		enterInitials();
+		enterInitialsDraw();
 	}
 }
 void SpaceInvaders::SpaceInvaders::update(uint)
@@ -184,33 +160,9 @@ void SpaceInvaders::SpaceInvaders::update(uint)
 		if(screenChange){
 			clearButtonCallbacks();
 			buttons->setBtnPressCallback(BTN_A, [](){
-				// File file = SPIFFS.open(instance->highscoresPath, "r");
-				// serializeJson(instance->jb, file);
-				// JsonArray hiscores = instance->jb.to<JsonArray>();
-				// file.close();
-				// for (JsonObject element : hiscores)
-				// {
-				// 	if(element["Rank"] == 1)
-				// 		instance->tempScore = element["Score"].as<int>();
-				// }
-				// hiscores.end();
-				Serial.println("HERE");
-				// delay(5);
-				instance->gamestatus = "title";
+				instance->gamestatus = "enterInitials";
 			});
 			buttons->setBtnPressCallback(BTN_B, [](){
-				// File file = SPIFFS.open(instance->highscoresPath, "r");
-				// serializeJson(instance->jb, file);
-				// JsonArray hiscores = instance->jb.to<JsonArray>();
-				// file.close();
-				// for (JsonObject element : hiscores)
-				// {
-				// 	if(element["Rank"] == 1)
-				// 		instance->tempScore = element["Score"].as<int>();
-				// }
-				// hiscores.end();
-				// Serial.println("HERE");
-				// delay(5);
 				instance->gamestatus = "enterInitials";
 			});
 		}
@@ -235,6 +187,7 @@ void SpaceInvaders::SpaceInvaders::update(uint)
 		if(screenChange){
 			eraseDataSetup();
 		}
+		eraseDataUpdate();
 	}
 	if(gamestatus == "dataDisplay")
 	{
@@ -247,6 +200,7 @@ void SpaceInvaders::SpaceInvaders::update(uint)
 		if(screenChange){
 			enterInitialsSetup();
 		}
+		enterInitialsUpdate();
 	}
 	draw();
 	display->commit();
@@ -367,7 +321,7 @@ void SpaceInvaders::SpaceInvaders::handledeath() {
 	if (deadcounter == 0) {
 		deadcounter = -1;
 		lives--;
-		shipx = 0;
+		shipx = 60;
 		if (lives == 0) { gamestatus = "gameover"; }
 	}
 }
@@ -738,29 +692,20 @@ void SpaceInvaders::SpaceInvaders::eraseDataSetup()
 	elapsedMillis = millis();
 	blinkState = 1;
 	clearButtonCallbacks();
-	buttons->setBtnPressCallback(BTN_B, [](){
+	buttons->setBtnReleaseCallback(BTN_B, [](){
 		instance->gamestatus = "dataDisplay";
 
 	});
 	buttons->setBtnPressCallback(BTN_A, [](){
-		// JsonArray empty = instance->jb.to<JsonArray>();
-		// File file = SPIFFS.open(instance->highscoresPath, "w");
-		// serializeJson(empty, file);
-		// file.close();
+		Highscore.clear();
 		instance->gamestatus = "title";
 
 	});
 }
-void SpaceInvaders::SpaceInvaders::eraseData()
+void SpaceInvaders::SpaceInvaders::eraseDataDraw()
 {
 	baseSprite->clear(TFT_BLACK);
 	baseSprite->setTextFont(2);
-
-	if (millis() - elapsedMillis >= 350) {
-		elapsedMillis = millis();
-		blinkState = !blinkState;
-	}
-
 	baseSprite->setTextColor(TFT_WHITE);
 	baseSprite->setCursor(4, 5);
 	baseSprite->printCenter("ARE YOU SURE?");
@@ -782,37 +727,25 @@ void SpaceInvaders::SpaceInvaders::eraseData()
 		baseSprite->printCenter("DELETE");
 	}
 }
+void SpaceInvaders::SpaceInvaders::eraseDataUpdate()
+{
+	if (millis() - elapsedMillis >= 350) {
+		elapsedMillis = millis();
+		blinkState = !blinkState;
+	}
+}
 
 void SpaceInvaders::SpaceInvaders::dataDisplaySetup()
 {
-	// jb.clear();
-	// File file = SPIFFS.open(highscoresPath, "r");
-	// serializeJson(instance->jb, file);
-	// JsonArray hiscores = jb.to<JsonArray>();
-	// file.close();
-	// memset(scoreArray, 0, 6);
-	// hiscoresSize = hiscores.size();
-	// for(uint8_t i = 0; i < 6; i++)
-	// {
-	// 	for(JsonObject element:hiscores)
-	// 	{
-	// 		if(element["Rank"] == i)
-	// 		{
-	// 			strncpy(nameArray[i], element["Name"], 4);
-	// 			scoreArray[i] = element["Score"];
-	// 		}
-	// 		yield();
-	// 	}
-	// }
 	clearButtonCallbacks();
+	buttons->setButtonHeldCallback(BTN_B, 500, [](){
+		instance->gamestatus = "eraseData";
+	});
 	buttons->setBtnPressCallback(BTN_A, [](){
 		instance->gamestatus = "title";
 	});
-	buttons->setBtnPressCallback(BTN_B, [](){
+	buttons->setBtnReleaseCallback(BTN_B, [](){
 		instance->gamestatus = "title";
-	});
-	buttons->setBtnPressCallback(BTN_C, [](){
-		instance->gamestatus = "eraseData";
 	});
 }
 void SpaceInvaders::SpaceInvaders::dataDisplay()
@@ -824,16 +757,23 @@ void SpaceInvaders::SpaceInvaders::dataDisplay()
 	baseSprite->setTextColor(TFT_RED);
 	baseSprite->printCenter("HIGHSCORES");
 	baseSprite->setCursor(3, 110);
-	// for (int i = 1; i < 6;i++)
-	// {
-	// 	baseSprite->setCursor(6, i * 20);
-	// 	if(i <= hiscoresSize)
-	// 		baseSprite->printf("%d.   %.3s    %04d", i, nameArray[i], scoreArray[i]);
-	// 	else
-	// 		baseSprite->printf("%d.    ---   ----", i);
-	// }
+	for (int i = 1; i < 6;i++)
+	{
+		baseSprite->setCursor(6, i * 20);
+		if(i <= Highscore.count())
+		{
+			Serial.printf("%d.   %.3s    %04d\n", i, Highscore.get(i - 1).name, Highscore.get(i - 1).score);
+			Serial.println();
+			baseSprite->printf("%d.   %.3s    %04d", i, Highscore.get(i - 1).name, Highscore.get(i - 1).score);
+		}
+		else
+		{
+			baseSprite->printf("%d.    ---   ----", i);
+		}
+	}
+	Serial.println("---------------");
 	baseSprite->setCursor(2, 115);
-	baseSprite->print("Erase");
+	baseSprite->print("Hold B to erase");
 }
 void SpaceInvaders::SpaceInvaders::showtitle() {
 	baseSprite->clear(TFT_BLACK);
@@ -893,7 +833,7 @@ void SpaceInvaders::SpaceInvaders::titleSetup()
 				instance->gamestatus = "newgame";
 				break;
 			case 1:
-				// instance->gamestatus = "dataDisplay";
+				instance->gamestatus = "dataDisplay";
 				break;
 			case 2:
 				instance->pop();
@@ -903,6 +843,7 @@ void SpaceInvaders::SpaceInvaders::titleSetup()
 
 void SpaceInvaders::SpaceInvaders::enterInitialsSetup()
 {
+	tempScore = Highscore.get(0).score;
 	name = "AAA";
 	charCursor = 0;
 	previous = "";
@@ -969,7 +910,7 @@ void SpaceInvaders::SpaceInvaders::enterInitialsSetup()
 		instance->elapsedMillis = millis();
 	});
 }
-void SpaceInvaders::SpaceInvaders::enterInitials() {
+void SpaceInvaders::SpaceInvaders::enterInitialsUpdate() {
   
     if (millis() - elapsedMillis >= 350) //cursor blinking routine
 	{
@@ -988,7 +929,17 @@ void SpaceInvaders::SpaceInvaders::enterInitials() {
       blinkState = 1;
       elapsedMillis = millis();
     }
-	
+
+	if(charCursor >= 3)
+	{
+		Score newScore;
+		strcpy(newScore.name, name.c_str());
+		newScore.score = score;
+		Highscore.add(newScore);
+		gamestatus = "dataDisplay";
+	}
+}
+void SpaceInvaders::SpaceInvaders::enterInitialsDraw() {
 	baseSprite->clear(TFT_BLACK);
     baseSprite->setCursor(16, 8);
     baseSprite->setTextFont(2);
@@ -1011,65 +962,5 @@ void SpaceInvaders::SpaceInvaders::enterInitials() {
     // baseSprite->drawRect(30, 38, 100, 20, TFT_WHITE);
 	if(blinkState){
 		baseSprite->drawFastHLine(38 + 15*charCursor, 56, 12, TFT_WHITE);
-	}
-
-
-	if(charCursor >= 3)
-	{
-		// File file = SPIFFS.open(highscoresPath, "r");
-		// jb.clear();
-		// deserializeJson(jb, file);
-		// JsonArray hiscores2 = jb.as<JsonArray>();
-		// file.close();
-		// DynamicJsonDocument doc = DynamicJsonDocument(1024);
-		// JsonObject newHiscore = doc.to<JsonObject>();
-		// newHiscore["Name"] = name;
-		// newHiscore["Score"] = score;
-		// newHiscore["Rank"] = 1;
-
-		// if(savePresent && hiscores2.size() > 0)
-		// {
-		// 	newHiscore["Rank"] = 999;
-		// 	// Serial.println(hiscores2.size());
-		// 	uint16_t tempSize = hiscores2.size();
-		// 	for (int16_t i = 0; i < tempSize;i++)//searching for a place in the leaderboard for our new score
-		// 	{
-		// 		Serial.printf("i: %d\n", i);
-		// 		Serial.println((uint16_t)(hiscores2[i]["Rank"]));
-		// 		Serial.println((uint16_t)(hiscores2[i]["Score"]));
-		// 		delay(5);
-		// 		if(score >= (uint16_t)(hiscores2[i]["Score"]))
-		// 		{
-		// 			Serial.println("ENTERED");
-		// 			delay(5);
-		// 			if((uint16_t)(newHiscore["Rank"]) >  (uint16_t)(hiscores2[i]["Rank"]))
-		// 			{
-		// 				newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]);
-		// 			}
-		// 			DynamicJsonDocument docTemp = DynamicJsonDocument(1024);
-		// 			JsonObject tempObject = docTemp.as<JsonObject>();
-		// 			tempObject["Name"] = (const char *)(hiscores2[i]["Name"]);
-		// 			tempObject["Score"] = (uint16_t)(hiscores2[i]["Score"]);
-		// 			tempObject["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
-		// 			serializeJsonPretty(tempObject, Serial);
-		// 			// delay(5);
-		// 			hiscores2.remove(i);
-		// 			hiscores2.add(tempObject);
-		// 			tempSize--;
-		// 			i--;
-		// 		}
-		// 		else
-		// 		{
-		// 			if(newHiscore["Rank"] <= (uint16_t)(hiscores2[i]["Rank"]) || newHiscore["Rank"] == 999)
-		// 				newHiscore["Rank"] = (uint16_t)(hiscores2[i]["Rank"]) + 1;
-		// 		}
-		// 	}
-		// }
-		// hiscores2.add(newHiscore);
-		// doc.clear();
-		// file = SPIFFS.open(highscoresPath, "w");
-		// serializeJson(hiscores2, file);
-		// file.close();
-		gamestatus = "dataDisplay";
 	}
 }

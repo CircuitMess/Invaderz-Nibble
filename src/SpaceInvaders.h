@@ -1,5 +1,5 @@
-#ifndef SPACEINVADERS_H
-#define SPACEINVADERS_H
+#ifndef INVADERZ_H
+#define INVADERZ_H
 #include <Arduino.h>
 #include <CircuitOS.h>
 #include <Input/I2cExpander.h>
@@ -115,13 +115,15 @@ private:
 	void movesaucer();
 	void drawsaucer();
 	void eraseDataSetup();
-	void eraseData();
+	void eraseDataDraw();
+	void eraseDataUpdate();
 	void dataDisplaySetup();
 	void dataDisplay();
 	void showtitle();
 	void titleSetup();
 	void enterInitialsSetup();
-	void enterInitials();
+	void enterInitialsDraw();
+	void enterInitialsUpdate();
 
 };
 
