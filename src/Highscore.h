@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #define HS_NAME_LIMIT 3 // player name character limit
-#define HS_MAX_SCORES 6 // # of players in HS
+#define HS_MAX_SCORES 5 // # of players in HS
 #define HS_FILENAME "/Invaderz" // SPIFFS filename for the HS, max 31 char
 
 namespace SpaceInvaders

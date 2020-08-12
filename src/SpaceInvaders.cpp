@@ -692,7 +692,7 @@ void SpaceInvaders::SpaceInvaders::eraseDataSetup()
 	elapsedMillis = millis();
 	blinkState = 1;
 	clearButtonCallbacks();
-	buttons->setBtnReleaseCallback(BTN_B, [](){
+	buttons->setBtnPressCallback(BTN_B, [](){
 		instance->gamestatus = "dataDisplay";
 
 	});
@@ -738,13 +738,13 @@ void SpaceInvaders::SpaceInvaders::eraseDataUpdate()
 void SpaceInvaders::SpaceInvaders::dataDisplaySetup()
 {
 	clearButtonCallbacks();
-	buttons->setButtonHeldCallback(BTN_B, 500, [](){
+	buttons->setBtnPressCallback(BTN_UP, [](){
 		instance->gamestatus = "eraseData";
 	});
 	buttons->setBtnPressCallback(BTN_A, [](){
 		instance->gamestatus = "title";
 	});
-	buttons->setBtnReleaseCallback(BTN_B, [](){
+	buttons->setBtnPressCallback(BTN_B, [](){
 		instance->gamestatus = "title";
 	});
 }
@@ -773,8 +773,9 @@ void SpaceInvaders::SpaceInvaders::dataDisplay()
 	}
 	Serial.println("---------------");
 	baseSprite->setCursor(2, 115);
-	baseSprite->print("Hold B to erase");
+	baseSprite->print("Press UP to erase");
 }
+
 void SpaceInvaders::SpaceInvaders::showtitle() {
 	baseSprite->clear(TFT_BLACK);
 	for(int i = 0; i < STAR_COUNT; i++)
