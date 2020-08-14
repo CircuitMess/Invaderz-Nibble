@@ -13,7 +13,7 @@
 #include <Support/Context.h>
 #include "../Nibble.hpp"
 #include <UI/Image.h>
-
+extern Context* runningContext;
 namespace SpaceInvaders
 {
 	

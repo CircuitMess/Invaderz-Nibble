@@ -19,6 +19,7 @@ SpaceInvaders::SpaceInvaders::SpaceInvaders(Display& display) :
 }
 void SpaceInvaders::SpaceInvaders::start()
 {
+	runningContext = this;
 	Highscore.begin();
 	prevGamestatus = "";
 	draw();
