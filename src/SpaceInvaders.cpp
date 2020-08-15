@@ -305,6 +305,9 @@ void SpaceInvaders::SpaceInvaders::showscore() {
 	if (infoshow == 1 && saucers == -1) {
 		if (lives > 1) { drawBitmap(0, 0, invaderz_playership[0], TFT_WHITE, 2); }
 		if (lives > 2) { drawBitmap(18, 0, invaderz_playership[0], TFT_WHITE, 2); }
+		baseSprite->setTextColor(TFT_WHITE);
+		baseSprite->setFreeFont(TT1);
+		baseSprite->setTextSize(2);
 		baseSprite->cursor_x= 84 - 4 * (score > 9) - 4 * (score > 99) - 4 * (score > 999);
 		baseSprite->cursor_y = 10;
 		baseSprite->print(score);
