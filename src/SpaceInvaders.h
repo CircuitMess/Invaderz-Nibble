@@ -54,7 +54,7 @@ private:
 	int invadershoty[4];
 	bool invadershotframe = 0;
 	bool pastInvaderShotFrame = 0;
-	int invadershots;
+	int invadershots = 0;
 	int invadershottimer;
 	int bunkers[4];
 	int shotx;

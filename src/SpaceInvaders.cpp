@@ -232,6 +232,8 @@ void SpaceInvaders::SpaceInvaders::newgame() {
 	shoty = -1;
 	deadcounter = -1;
 	saucers = -1;
+	invadershots = 0;
+
 	starsSetup();
 	for (int i = 0; i < 4; i++) {
 		invadershotx[i] = -1;
