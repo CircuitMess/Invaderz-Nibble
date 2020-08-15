@@ -55,6 +55,13 @@ void SpaceInvaders::SpaceInvaders::draw(){
 		showscore(); // show lives, score, level
 	}
 	if (gamestatus == "gameover") { // game over
+		baseSprite->clear(TFT_BLACK);
+		drawplayership(); // draw player ship
+		drawplayershot(); // move + draw player shoot
+		drawinvaders(); // draw invaders
+		drawInvaderShot(); // invaders shoot
+		drawbunkers(); // draw bunkers & check collission with player shot
+		drawsaucer(); // draw saucer & remove if hit
 		baseSprite->setTextColor(TFT_RED);
 		baseSprite->setTextSize(2);
 		baseSprite->setTextFont(1);
