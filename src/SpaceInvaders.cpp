@@ -2,7 +2,6 @@
 #include "sprites.hpp"
 #include <Audio/Piezo.h>
 #include "Highscore.h"
-
 SpaceInvaders::SpaceInvaders* SpaceInvaders::SpaceInvaders::instance = nullptr;
 SpaceInvaders::SpaceInvaders::SpaceInvaders(Display& display) :
 		Context(display), baseSprite(display.getBaseSprite()),
@@ -818,6 +817,7 @@ void SpaceInvaders::SpaceInvaders::titleSetup()
 			instance->cursor--;
 			instance->blinkMillis = millis();
 			instance->blinkState = 1;
+			Piezo.tone(500, 50);
 		}
 	});
 	buttons->setBtnPressCallback(BTN_DOWN, [](){
@@ -826,6 +826,7 @@ void SpaceInvaders::SpaceInvaders::titleSetup()
 			instance->cursor++;
 			instance->blinkMillis = millis();
 			instance->blinkState = 1;
+			Piezo.tone(500, 50);
 		}
 	});
 	
