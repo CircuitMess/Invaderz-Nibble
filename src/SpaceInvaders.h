@@ -14,6 +14,8 @@
 #include "../Nibble.hpp"
 #include <UI/Image.h>
 extern Context* runningContext;
+extern bool exitingGame;
+
 namespace SpaceInvaders
 {
 	
@@ -30,6 +32,7 @@ public:
 	void start() override;
 	void update(uint) override;
 	void stop() override;
+	void pack() override;
 private:
 	Sprite *baseSprite;
 	Input *buttons;

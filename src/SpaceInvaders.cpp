@@ -31,6 +31,10 @@ void SpaceInvaders::SpaceInvaders::stop()
 	// delete[] highscoresPath;
 	UpdateManager::removeListener(this);
 }
+void SpaceInvaders::SpaceInvaders::pack(){
+	exitingGame = true;
+}
+
 void SpaceInvaders::SpaceInvaders::draw(){
 	if (gamestatus == "title") {
 		showtitle();
