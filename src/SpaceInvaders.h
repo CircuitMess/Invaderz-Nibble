@@ -4,7 +4,7 @@
 #include <CircuitOS.h>
 #include <Input/I2cExpander.h>
 #include <Input/InputI2C.h>
-#include <Update/UpdateManager.h>
+#include <Loop/LoopManager.h>
 #include "Star.h"
 #include <ArduinoJson.h>
 #include <spiffs_api.h>
@@ -25,12 +25,12 @@ constexpr int STAR_SPEED_MIN = 1;          // Minimum movement in pixels per upd
 constexpr int STAR_SPEED_MAX = 2;         // Maximum movement in pixels per update. (value is inclusive)
 constexpr int STAR_COLOR = 0xffff;  
 
-class SpaceInvaders: public Context, public UpdateListener{
+class SpaceInvaders: public Context, public LoopListener{
 public:
 	SpaceInvaders(Display& display);
 	void draw() override;
 	void start() override;
-	void update(uint) override;
+	void loop(uint) override;
 	void stop() override;
 	void pack() override;
 private:

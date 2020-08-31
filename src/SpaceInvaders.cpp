@@ -22,14 +22,14 @@ void SpaceInvaders::SpaceInvaders::start()
 	Highscore.begin();
 	prevGamestatus = "";
 	draw();
-	UpdateManager::addListener(this);
+	LoopManager::addListener(this);
 }
 void SpaceInvaders::SpaceInvaders::stop()
 {
 	clearButtonCallbacks();
 	// jb.clear();
 	// delete[] highscoresPath;
-	UpdateManager::removeListener(this);
+	LoopManager::removeListener(this);
 }
 void SpaceInvaders::SpaceInvaders::pack(){
 	exitingGame = true;
@@ -100,7 +100,7 @@ void SpaceInvaders::SpaceInvaders::draw(){
 		enterInitialsDraw();
 	}
 }
-void SpaceInvaders::SpaceInvaders::update(uint)
+void SpaceInvaders::SpaceInvaders::loop(uint)
 {
 	if(gamestatus != prevGamestatus)
 	{
