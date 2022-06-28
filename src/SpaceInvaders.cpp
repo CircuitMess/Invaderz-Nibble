@@ -312,11 +312,9 @@ void SpaceInvaders::SpaceInvaders::showscore() {
 		baseSprite->setTextColor(TFT_WHITE);
 		baseSprite->setFreeFont(TT1);
 		baseSprite->setTextSize(2);
-		baseSprite->cursor_x= 84 - 4 * (score > 9) - 4 * (score > 99) - 4 * (score > 999);
-		baseSprite->cursor_y = 10;
+		baseSprite->setCursor(84 - 4 * (score > 9) - 4 * (score > 99) - 4 * (score > 999), 10);
 		baseSprite->print(score);
-		baseSprite->cursor_x = 112;
-		baseSprite->cursor_y = 10;
+		baseSprite->setCursor(112, 10);
 		baseSprite->print(gamelevel + 1);
 	}
 }
